@@ -28,6 +28,6 @@ COPY alembic ./alembic
 COPY alembic.ini ./
 RUN useradd -m -u 10001 forge && chown -R forge /app
 USER forge
-EXPOSE 8000
+EXPOSE 8001
 # API entrypoint; worker/beat override `command` in docker-compose / K8s.
-CMD ["gunicorn", "app.main:app", "-k", "uvicorn.workers.UvicornWorker", "-b", "0.0.0.0:8000", "-w", "4", "--timeout", "120"]
+CMD ["gunicorn", "app.main:app", "-k", "uvicorn.workers.UvicornWorker", "-b", "0.0.0.0:8001", "-w", "4", "--timeout", "120"]

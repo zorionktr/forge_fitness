@@ -6,11 +6,11 @@ services:
   api:
     build: .
     image: forge-backend:local        # built once here; worker/beat reuse this tag
-    network_mode: host                 # localhost == host loopback; uvicorn binds host :8000
+    network_mode: host                 # localhost == host loopback; uvicorn binds host :8001
     env_file: [.env]
     environment: { HF_HOME: /home/forge/.cache/huggingface }  # persist BGE-M3 weights (docs/04 §3)
     volumes: ["./app:/app/app", "hfcache:/home/forge/.cache/huggingface"]
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
 
   worker:
     image: forge-backend:local

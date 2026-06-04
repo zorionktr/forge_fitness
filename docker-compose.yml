@@ -2,25 +2,26 @@
 #
 # Postgres AND Redis run on the HOST (not here) — these containers use host networking so
 # `localhost` reaches the host's Postgres (5432) and Redis (6379). The frontend is host-
-# networked too so Vite's `/api` proxy can reach the host-bound API on :8000.
+# networked too so Vite's `/api` proxy can reach the host-bound API on :8001.
 #
 # Prereqs on the host: PostgreSQL (with pgvector + the `forge` role/db) and Redis running,
 # and the DB schema applied (`cd backend && ../env/bin/alembic upgrade head`).
 #
 # Run everything:   docker compose up --build
-#   API   -> http://localhost:8000     Web -> http://localhost:5173
+#   API   -> http://localhost:8001     Web -> http://localhost:3001
 #   MinIO -> http://localhost:9001 (console)
+# On EC2, open ports 3001 (web) and 8001 (API, if hit directly) in the security group.
 name: forge
 
 services:
   api:
     build: ./backend
     image: forge-backend:local        # built once here; worker/beat reuse this tag
-    network_mode: host                 # localhost == host loopback; uvicorn binds host :8000
+    network_mode: host                 # localhost == host loopback; uvicorn binds host :8001
     env_file: [./backend/.env]
     environment: { HF_HOME: /home/forge/.cache/huggingface }  # persist BGE-M3 weights
     volumes: ["./backend/app:/app/app", "hfcache:/home/forge/.cache/huggingface"]
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
 
   worker:
     image: forge-backend:local
@@ -40,12 +41,12 @@ services:
 
   web:
     build: ./frontend
-    network_mode: host                 # Vite on :5173, proxies /api -> localhost:8000 (host API)
+    network_mode: host                 # Vite on :3001, proxies /api -> localhost:8001 (host API)
     depends_on: [api]
     volumes:
       - ./frontend:/app                # live source for HMR
       - web_node_modules:/app/node_modules  # keep the image's arch-correct node_modules
-    command: npm run dev -- --host 0.0.0.0 --port 5173
+    command: npm run dev -- --host 0.0.0.0 --port 3001
 
   # Local stand-ins for prod (docs/12): Redpanda ~ Kafka, MinIO ~ S3, Qdrant for vectors.
   redpanda:

@@ -1,4 +1,4 @@
-# Frontend dev container (Vite + HMR). Vite proxies /api -> localhost:8000, so this runs
+# Frontend dev container (Vite + HMR). Vite proxies /api -> localhost:8001, so this runs
 # with host networking in compose to reach the host-networked API. For a prod build you'd
 # instead `npm run build` and serve dist/ via nginx.
 FROM node:20-alpine
@@ -11,5 +11,5 @@ RUN npm ci
 
 COPY . .
 
-EXPOSE 5173
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]
+EXPOSE 3001
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3001"]
