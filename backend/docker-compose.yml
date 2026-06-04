@@ -1,0 +1,48 @@
+# Local dev stack (docs/09 §2, docs/12 §8). Lightweight equivalents of prod managed services.
+# NOTE: Postgres AND Redis run on the host (not in containers) — the host already runs both on
+# their default ports. These services use host networking so `localhost` in .env (DB, redis,
+# kafka, s3) resolves to the host loopback and reaches the host's Postgres/Redis directly.
+services:
+  api:
+    build: .
+    image: forge-backend:local        # built once here; worker/beat reuse this tag
+    network_mode: host                 # localhost == host loopback; uvicorn binds host :8000
+    env_file: [.env]
+    environment: { HF_HOME: /home/forge/.cache/huggingface }  # persist BGE-M3 weights (docs/04 §3)
+    volumes: ["./app:/app/app", "hfcache:/home/forge/.cache/huggingface"]
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  worker:
+    image: forge-backend:local
+    network_mode: host
+    env_file: [.env]
+    environment: { HF_HOME: /home/forge/.cache/huggingface }
+    volumes: ["hfcache:/home/forge/.cache/huggingface"]
+    depends_on: [api]
+    command: celery -A app.workers.celery_app worker --loglevel=info
+
+  beat:
+    image: forge-backend:local
+    network_mode: host
+    env_file: [.env]
+    depends_on: [api]
+    command: celery -A app.workers.celery_app beat --loglevel=info
+
+  # Local stand-ins for prod (docs/12): Redpanda ~ Kafka, MinIO ~ S3, Qdrant for vectors.
+  redpanda:
+    image: redpandadata/redpanda:latest
+    command: redpanda start --overprovisioned --smp 1 --memory 512M --node-id 0 --check=false
+    ports: ["9092:9092"]
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment: { MINIO_ROOT_USER: forge, MINIO_ROOT_PASSWORD: forgeforge }
+    ports: ["9000:9000", "9001:9001"]
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports: ["6333:6333"]
+
+volumes:
+  hfcache:  # cached HuggingFace model weights (BGE-M3) so rebuilds don't re-download ~2 GB

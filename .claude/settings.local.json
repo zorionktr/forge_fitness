@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(../env/bin/pip install *)",
+      "Bash(../env/bin/python -c ' *)",
+      "Bash(curl -s -X POST http://localhost:8000/api/v1/auth/register -H \"Content-Type: application/json\" -d '{\"email\":\"ocr@example.com\",\"username\":\"ocrtester\",\"password\":\"ocr1234567\",\"first_name\":\"OCR\"}')"
+    ]
+  }
+}
