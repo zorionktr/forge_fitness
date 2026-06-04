@@ -48,7 +48,8 @@ services:
       - web_node_modules:/app/node_modules  # keep the image's arch-correct node_modules
     command: npm run dev -- --host 0.0.0.0 --port 3001
 
-  # Local stand-ins for prod (docs/12): Redpanda ~ Kafka, MinIO ~ S3, Qdrant for vectors.
+  # Local stand-ins for prod (docs/12): Redpanda ~ Kafka, MinIO ~ S3.
+  # Qdrant runs on the HOST (already listening on :6333) — not containerized here.
   redpanda:
     image: redpandadata/redpanda:latest
     command: redpanda start --overprovisioned --smp 1 --memory 512M --node-id 0 --check=false
@@ -59,10 +60,6 @@ services:
     command: server /data --console-address ":9001"
     environment: { MINIO_ROOT_USER: forge, MINIO_ROOT_PASSWORD: forgeforge }
     ports: ["9000:9000", "9001:9001"]
-
-  qdrant:
-    image: qdrant/qdrant:latest
-    ports: ["6333:6333"]
 
 volumes:
   hfcache:           # cached HuggingFace model weights (BGE-M3)
