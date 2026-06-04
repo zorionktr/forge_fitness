@@ -36,6 +36,8 @@ export type ProfileUpdate = Partial<{
   height_cm: number;
   weight_kg: number;
   body_fat_pct: number;
+  activity_level: string;
+  coach_persona: string;
 }>;
 
 export const getProfile = () => api<Profile>("/profile/me");

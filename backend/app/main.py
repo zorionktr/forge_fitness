@@ -13,7 +13,11 @@ from app.core.config import settings
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # startup: warm caches, init kafka producer, otel — omitted in scaffold
+    # startup: optionally ensure the schema exists (create-if-missing), then warm caches etc.
+    if settings.auto_init_db:
+        from app.db.init import init_db
+
+        await init_db()
     yield
     # shutdown: close pools/producers
 

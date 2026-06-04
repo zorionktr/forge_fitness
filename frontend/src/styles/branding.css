@@ -1,0 +1,141 @@
+/* Shared visual language for the welcome / auth / onboarding surfaces.
+   Extra design tokens layered on top of global.css. */
+:root {
+  --accent-2: #ff2d75; /* magenta */
+  --accent-3: #ffb347; /* amber   */
+  --glass: rgba(20, 26, 36, 0.66);
+  --glass-line: rgba(255, 255, 255, 0.08);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ---------- Animated aurora background ---------- */
+.aurora {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  z-index: 0;
+  background: radial-gradient(120% 100% at 50% -10%, #131a26 0%, var(--bg) 55%);
+}
+.aurora__blob {
+  position: absolute;
+  width: 60vmax;
+  height: 60vmax;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.55;
+  mix-blend-mode: screen;
+  will-change: transform;
+}
+.aurora__blob--1 {
+  background: radial-gradient(circle, var(--accent) 0%, transparent 65%);
+  top: -22vmax;
+  left: -14vmax;
+  animation: drift1 22s ease-in-out infinite;
+}
+.aurora__blob--2 {
+  background: radial-gradient(circle, var(--accent-2) 0%, transparent 65%);
+  bottom: -26vmax;
+  right: -18vmax;
+  animation: drift2 26s ease-in-out infinite;
+}
+.aurora__blob--3 {
+  background: radial-gradient(circle, var(--accent-3) 0%, transparent 60%);
+  top: 30%;
+  left: 40%;
+  width: 42vmax;
+  height: 42vmax;
+  opacity: 0.35;
+  animation: drift3 30s ease-in-out infinite;
+}
+.aurora__grid {
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(110% 90% at 50% 0%, #000 30%, transparent 80%);
+}
+.aurora__vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(140% 120% at 50% 120%, transparent 40%, rgba(0, 0, 0, 0.55) 100%);
+}
+
+@keyframes drift1 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(8vmax, 6vmax, 0) scale(1.12); }
+}
+@keyframes drift2 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1.05); }
+  50% { transform: translate3d(-7vmax, -5vmax, 0) scale(0.92); }
+}
+@keyframes drift3 {
+  0%, 100% { transform: translate3d(-4vmax, 0, 0) scale(1); }
+  50% { transform: translate3d(5vmax, -6vmax, 0) scale(1.15); }
+}
+
+/* ---------- Brand flame mark ---------- */
+.brandmark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 6px 20px rgba(255, 90, 54, 0.45));
+}
+.brandmark__flame {
+  transform-origin: 50% 70%;
+}
+.brandmark--animated .brandmark__flame {
+  animation: flameIn 0.9s cubic-bezier(0.16, 1, 0.3, 1) both, flicker 3.2s ease-in-out 1s infinite;
+}
+@keyframes flameIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.6) rotate(-6deg); }
+  to { opacity: 1; transform: translateY(0) scale(1) rotate(0); }
+}
+@keyframes flicker {
+  0%, 100% { transform: scale(1) rotate(0); }
+  35% { transform: scale(1.04, 0.98) rotate(0.6deg); }
+  65% { transform: scale(0.98, 1.03) rotate(-0.6deg); }
+}
+
+/* ---------- Shared primary button ---------- */
+.btn-primary {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  border: 0;
+  border-radius: 16px;
+  padding: 15px 20px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  background: linear-gradient(120deg, var(--accent-3), var(--accent) 45%, var(--accent-2));
+  box-shadow: 0 10px 30px -8px rgba(255, 90, 54, 0.6);
+  transition: transform 0.15s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 14px 36px -8px rgba(255, 90, 54, 0.7); }
+.btn-primary:active { transform: translateY(1px) scale(0.99); }
+.btn-primary:disabled { opacity: 0.45; cursor: default; box-shadow: none; transform: none; }
+.btn-primary__label { position: relative; z-index: 1; }
+.btn-primary__shine {
+  position: absolute;
+  top: 0;
+  left: -130%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+  transform: skewX(-18deg);
+  animation: shine 3.4s ease-in-out infinite;
+}
+.btn-primary.is-busy { pointer-events: none; }
+@keyframes shine {
+  0%, 60% { left: -130%; }
+  100% { left: 130%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora__blob, .brandmark--animated .brandmark__flame, .btn-primary__shine {
+    animation: none !important;
+  }
+}

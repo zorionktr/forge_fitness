@@ -5,6 +5,7 @@ import { FeedScreen } from "@/features/feed/FeedScreen";
 import { NutritionScreen } from "@/features/nutrition/NutritionScreen";
 import { RequireAuth } from "@/features/auth/RequireAuth";
 import { SignInScreen } from "@/features/auth/SignInScreen";
+import { OnboardingScreen } from "@/features/onboarding/OnboardingScreen";
 import { ProfileScreen } from "@/features/profile/ProfileScreen";
 
 // Feature screens are lazy-loaded in a fuller build. Scaffold wires the core routes (docs/08 §2).
@@ -14,6 +15,8 @@ export const router = createBrowserRouter([
     path: "/",
     element: <RequireAuth />, // everything below requires a session (docs/11 §2)
     children: [
+      // Onboarding is authed but full-screen (no tab bar / app chrome).
+      { path: "onboarding", element: <OnboardingScreen /> },
       {
         element: <AppLayout />,
         children: [

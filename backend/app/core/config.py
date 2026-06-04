@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     # --- Database / cache ---
     database_url: str = "postgresql+asyncpg://forge:forge@localhost:5432/forge"
     redis_url: str = "redis://localhost:6379/0"
+    auto_init_db: bool = False  # on startup, create the vector extension + any missing tables
 
     # --- Auth ---
     jwt_secret: str = "change-me"
