@@ -1,10 +1,12 @@
 """Auth routes (docs/10 §2). Email + (OAuth stubs)."""
 from __future__ import annotations
 
+import re
 import uuid
+from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, status
-from sqlalchemy import select
+from fastapi import APIRouter, HTTPException, Query, status
+from sqlalchemy import func, select
 
 from app.api.deps import DbDep
 from app.core.security import (
@@ -15,18 +17,64 @@ from app.core.security import (
     verify_password,
 )
 from app.db.models.user import Profile, User
-from app.schemas.auth import LoginRequest, RefreshRequest, RegisterRequest, TokenResponse
+from app.schemas.auth import (
+    LoginRequest,
+    RefreshRequest,
+    RegisterRequest,
+    TokenResponse,
+    UsernameAvailability,
+)
 
 router = APIRouter()
+
+# Mirror RegisterRequest's username rule (3–30 chars, letters/digits/underscore).
+_USERNAME_RE = re.compile(r"^[a-zA-Z0-9_]+$")
+
+
+@router.get("/username-available", response_model=UsernameAvailability)
+async def username_available(
+    db: DbDep,
+    username: Annotated[str, Query(min_length=1, max_length=30)],
+) -> UsernameAvailability:
+    """Live availability check for the sign-up form. Validates format (underscores allowed)
+    and that no existing account already has the username (case-insensitive)."""
+    uname = username.strip()
+    if len(uname) < 3:
+        return UsernameAvailability(username=uname, available=False, reason="At least 3 characters")
+    if not _USERNAME_RE.match(uname):
+        return UsernameAvailability(
+            username=uname, available=False, reason="Only letters, numbers, and underscores"
+        )
+    taken = (
+        await db.execute(
+            select(User.id).where(func.lower(User.username) == uname.lower()).limit(1)
+        )
+    ).scalar_one_or_none()
+    if taken is not None:
+        return UsernameAvailability(username=uname, available=False, reason="Already taken")
+    return UsernameAvailability(username=uname, available=True)
 
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
 async def register(body: RegisterRequest, db: DbDep) -> TokenResponse:
-    exists = (
-        await db.execute(select(User).where((User.email == body.email) | (User.username == body.username)))
-    ).scalar_one_or_none()
-    if exists:
-        raise HTTPException(status.HTTP_409_CONFLICT, "email or username already in use")
+    clashes = (
+        await db.execute(
+            select(User.email, User.username).where(
+                (func.lower(User.email) == body.email.lower())
+                | (func.lower(User.username) == body.username.lower())
+            )
+        )
+    ).all()
+    if clashes:
+        email_taken = any(e.lower() == body.email.lower() for e, _ in clashes)
+        username_taken = any(u.lower() == body.username.lower() for _, u in clashes)
+        if email_taken and username_taken:
+            detail = "email and username are already in use"
+        elif email_taken:
+            detail = "email is already in use"
+        else:
+            detail = "username is already taken"
+        raise HTTPException(status.HTTP_409_CONFLICT, detail)
 
     display_name = " ".join(p for p in [body.first_name, body.last_name] if p) or None
     user = User(

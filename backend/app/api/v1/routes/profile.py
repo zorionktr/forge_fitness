@@ -52,6 +52,7 @@ def _to_out(user: User, profile: Profile) -> ProfileOut:
         avatar_url=user.avatar_url,
         role=user.role,
         sex=profile.sex,
+        goals=list(profile.goals or []),
         dob=profile.dob,
         age=_age(profile.dob),
         height_cm=_as_float(profile.height_cm),
@@ -59,6 +60,7 @@ def _to_out(user: User, profile: Profile) -> ProfileOut:
         body_fat_pct=_as_float(profile.body_fat_pct),
         activity_level=profile.activity_level,
         coach_persona=profile.coach_persona,
+        streaks_public=profile.streaks_public,
     )
 
 
@@ -81,7 +83,7 @@ async def update_me(body: ProfileUpdate, user: CurrentUser, db: DbDep) -> Profil
 
     # --- profile fields; detect height/weight/body-fat changes for history ---
     old = (_as_float(profile.weight_kg), _as_float(profile.height_cm), _as_float(profile.body_fat_pct))
-    for field in ("sex", "dob", "height_cm", "weight_kg", "body_fat_pct", "activity_level", "coach_persona"):
+    for field in ("sex", "goals", "dob", "height_cm", "weight_kg", "body_fat_pct", "activity_level", "coach_persona", "streaks_public"):
         val = getattr(body, field)
         if val is not None:
             setattr(profile, field, val)

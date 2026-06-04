@@ -10,6 +10,7 @@ import "@/styles/auth.css";
 import "@/styles/onboarding.css";
 import "@/styles/feed.css";
 import "@/styles/social.css";
+import "@/styles/progress.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

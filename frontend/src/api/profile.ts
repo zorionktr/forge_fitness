@@ -10,6 +10,7 @@ export interface Profile {
   avatar_url: string | null;
   role: string;
   sex: string | null;
+  goals: string[];
   dob: string | null; // YYYY-MM-DD
   age: number | null;
   height_cm: number | null;
@@ -17,6 +18,7 @@ export interface Profile {
   body_fat_pct: number | null;
   activity_level: string | null;
   coach_persona: string | null;
+  streaks_public: boolean;
 }
 
 export interface Measurement {
@@ -32,12 +34,14 @@ export type ProfileUpdate = Partial<{
   first_name: string;
   last_name: string;
   sex: string;
+  goals: string[];
   dob: string;
   height_cm: number;
   weight_kg: number;
   body_fat_pct: number;
   activity_level: string;
   coach_persona: string;
+  streaks_public: boolean;
 }>;
 
 export const getProfile = () => api<Profile>("/profile/me");

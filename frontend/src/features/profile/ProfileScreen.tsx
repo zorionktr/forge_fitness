@@ -116,6 +116,17 @@ export function ProfileScreen() {
     }
   };
 
+  const onToggleStreaks = async () => {
+    if (!profile) return;
+    const next = !profile.streaks_public;
+    setProfile({ ...profile, streaks_public: next }); // optimistic
+    try {
+      setProfile(await updateProfile({ streaks_public: next }));
+    } catch {
+      setProfile({ ...profile, streaks_public: !next }); // revert
+    }
+  };
+
   const [clearing, setClearing] = useState(false);
   const onClearCoach = async () => {
     if (!window.confirm("Erase all coach chat history and remembered facts? This cannot be undone.")) return;
@@ -189,7 +200,8 @@ export function ProfileScreen() {
                 <option value="">—</option>
                 <option value="male">Male</option>
                 <option value="female">Female</option>
-                <option value="other">Other</option>
+                <option value="lgbtq">LGBTQ+</option>
+                <option value="other">Prefer not to say</option>
               </select>
             </label>
           </div>
@@ -251,6 +263,24 @@ export function ProfileScreen() {
             ))}
           </ul>
         )}
+      </div>
+
+      <div className="settings">
+        <div className="settings__text">
+          <div className="settings__title">Streak visibility</div>
+          <div className="settings__hint">
+            Let friends see your gym and protein streaks on their leaderboard.
+          </div>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={profile.streaks_public}
+          className={`toggle ${profile.streaks_public ? "toggle--on" : ""}`}
+          onClick={onToggleStreaks}
+        >
+          <span className="toggle__knob" />
+        </button>
       </div>
 
       <div className="danger">

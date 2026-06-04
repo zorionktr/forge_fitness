@@ -72,6 +72,27 @@ class FollowState(BaseModel):
     follower_count: int
 
 
+class PublicProfile(BaseModel):
+    """Another user's profile as seen when 'stalking' from search (read-only)."""
+
+    id: uuid.UUID
+    username: str
+    display_name: str | None = None
+    avatar_url: str | None = None
+    age: int | None = None
+    sex: str | None = None
+    goals: list[str] = []
+    follower_count: int = 0
+    following_count: int = 0
+    post_count: int = 0
+    is_following: bool = False
+    is_me: bool = False
+    # Streaks are None when the user has hidden them (and it isn't you).
+    streaks_public: bool = True
+    gym_streak: int | None = None
+    protein_streak: int | None = None
+
+
 # ---- Stories ----
 
 

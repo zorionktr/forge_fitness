@@ -8,6 +8,8 @@ import { SignInScreen } from "@/features/auth/SignInScreen";
 import { OnboardingScreen } from "@/features/onboarding/OnboardingScreen";
 import { DiscoverScreen } from "@/features/discover/DiscoverScreen";
 import { ProfileScreen } from "@/features/profile/ProfileScreen";
+import { PublicProfileScreen } from "@/features/profile/PublicProfileScreen";
+import { ProgressScreen } from "@/features/progress/ProgressScreen";
 
 // Feature screens are lazy-loaded in a fuller build. Scaffold wires the core routes (docs/08 §2).
 export const router = createBrowserRouter([
@@ -24,9 +26,10 @@ export const router = createBrowserRouter([
           { index: true, element: <Navigate to="/feed" replace /> },
           { path: "feed", element: <FeedScreen /> },
           { path: "discover", element: <DiscoverScreen /> },
+          { path: "u/:userId", element: <PublicProfileScreen /> },
           { path: "chat", element: <ChatScreen /> },
           { path: "nutrition", element: <NutritionScreen /> },
-          { path: "progress", element: <div className="screen">Progress (docs/02 §3.4)</div> },
+          { path: "progress", element: <ProgressScreen /> },
           { path: "communities", element: <div className="screen">Communities (docs/06)</div> },
           { path: "profile", element: <ProfileScreen /> },
         ],

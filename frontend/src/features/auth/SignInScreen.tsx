@@ -1,7 +1,7 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ApiError } from "@/api/client";
-import { login, register } from "@/api/auth";
+import { checkUsername, login, register } from "@/api/auth";
 import { useAuth } from "@/lib/auth";
 import { Aurora } from "@/features/branding/Aurora";
 import { BrandMark } from "@/features/branding/BrandMark";
@@ -24,6 +24,33 @@ export function SignInScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  // Live username availability (register mode only).
+  type Uname = { state: "idle" | "checking" | "ok" | "taken"; reason?: string };
+  const [uname, setUname] = useState<Uname>({ state: "idle" });
+
+  useEffect(() => {
+    if (mode !== "register") return;
+    const u = username.trim();
+    if (u.length < 3) {
+      setUname({ state: "idle" });
+      return;
+    }
+    setUname({ state: "checking" });
+    let alive = true;
+    const id = window.setTimeout(() => {
+      checkUsername(u)
+        .then((r) => {
+          if (!alive) return;
+          setUname(r.available ? { state: "ok" } : { state: "taken", reason: r.reason ?? "Unavailable" });
+        })
+        .catch(() => alive && setUname({ state: "idle" }));
+    }, 400);
+    return () => {
+      alive = false;
+      window.clearTimeout(id);
+    };
+  }, [username, mode]);
 
   // Where to return after auth (set by RequireAuth), default to the feed.
   const from = (location.state as { from?: string } | null)?.from ?? "/feed";
@@ -145,6 +172,13 @@ export function SignInScreen() {
                   />
                   <span className="floaty__label">Username</span>
                 </label>
+                {username.trim().length >= 3 && (
+                  <p className={`uname-status uname-status--${uname.state}`} role="status">
+                    {uname.state === "checking" && "Checking availability…"}
+                    {uname.state === "ok" && `✓ @${username.trim()} is available`}
+                    {uname.state === "taken" && `✗ ${uname.reason}`}
+                  </p>
+                )}
               </>
             )}
 
@@ -172,7 +206,11 @@ export function SignInScreen() {
 
           {error && <p className="auth-card__error">{error}</p>}
 
-          <button className={`btn-primary ${busy ? "is-busy" : ""}`} type="submit" disabled={busy}>
+          <button
+            className={`btn-primary ${busy ? "is-busy" : ""}`}
+            type="submit"
+            disabled={busy || (isRegister && uname.state === "taken")}
+          >
             <span className="btn-primary__label">
               {busy ? "Just a sec…" : isRegister ? "Create my account" : "Sign in"}
             </span>

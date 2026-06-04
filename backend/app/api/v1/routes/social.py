@@ -8,7 +8,7 @@ from __future__ import annotations
 import logging
 import re
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Annotated
 
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile, status
@@ -16,9 +16,16 @@ from sqlalchemy import delete, func, or_, select
 
 from app.api.deps import CurrentUser, DbDep
 from app.db.models.social import Comment, Follow, Like, Post, Story, StoryComment
-from app.db.models.user import User
+from app.db.models.user import Profile, User
 from app.integrations.storage import upload_bytes
 from app.ml.recsys.feed import build_feed
+from app.services.streaks import (
+    WINDOW_DAYS,
+    compute_streak,
+    gym_days,
+    protein_days,
+    protein_target_g,
+)
 from app.schemas.social import (
     Author,
     CommentCreate,
@@ -27,6 +34,7 @@ from app.schemas.social import (
     MediaOut,
     PostCreate,
     PostOut,
+    PublicProfile,
     StoryCommentCreate,
     StoryCommentOut,
     StoryCreate,
@@ -343,6 +351,95 @@ async def suggested_users(
         )
     ).scalars().all()
     return await _to_cards(db, user, list(users))
+
+
+def _age(dob: date | None) -> int | None:
+    if dob is None:
+        return None
+    today = date.today()
+    return today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+
+
+@router.get("/users/{user_id}", response_model=PublicProfile)
+async def get_user_profile(user_id: uuid.UUID, user: CurrentUser, db: DbDep) -> PublicProfile:
+    """Public profile for 'stalking' a user found via search (read-only)."""
+    target = await db.get(User, user_id)
+    if target is None or not target.is_active:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "user not found")
+    profile = (
+        await db.execute(select(Profile).where(Profile.user_id == user_id))
+    ).scalar_one_or_none()
+
+    followers = (
+        await db.execute(select(func.count()).select_from(Follow).where(Follow.followee_id == user_id))
+    ).scalar_one()
+    following = (
+        await db.execute(select(func.count()).select_from(Follow).where(Follow.follower_id == user_id))
+    ).scalar_one()
+    posts = (
+        await db.execute(select(func.count()).select_from(Post).where(Post.author_id == user_id))
+    ).scalar_one()
+    is_following = (
+        await db.execute(
+            select(Follow.id).where(Follow.follower_id == user.id, Follow.followee_id == user_id)
+        )
+    ).scalar_one_or_none() is not None
+
+    # Streaks: shown only when the user keeps them public (or it's you).
+    streaks_public = profile.streaks_public if profile else True
+    gym_streak: int | None = None
+    protein_streak: int | None = None
+    if streaks_public or target.id == user.id:
+        today = date.today()
+        since = today - timedelta(days=WINDOW_DAYS)
+        weight = float(profile.weight_kg) if profile and profile.weight_kg is not None else None
+        gd = (await gym_days(db, [target.id], since)).get(target.id, set())
+        pd = (await protein_days(db, {target.id: protein_target_g(weight)}, since)).get(target.id, set())
+        gym_streak = compute_streak(gd, today)
+        protein_streak = compute_streak(pd, today)
+
+    return PublicProfile(
+        id=target.id,
+        username=target.username,
+        display_name=target.display_name,
+        avatar_url=target.avatar_url,
+        age=_age(profile.dob) if profile else None,
+        sex=profile.sex if profile else None,
+        goals=list(profile.goals or []) if profile else [],
+        follower_count=followers,
+        following_count=following,
+        post_count=posts,
+        is_following=is_following,
+        is_me=target.id == user.id,
+        streaks_public=streaks_public,
+        gym_streak=gym_streak,
+        protein_streak=protein_streak,
+    )
+
+
+@router.get("/users/{user_id}/posts", response_model=list[PostOut])
+async def get_user_posts(
+    user_id: uuid.UUID,
+    user: CurrentUser,
+    db: DbDep,
+    limit: Annotated[int, Query(ge=1, le=50)] = 20,
+    offset: Annotated[int, Query(ge=0)] = 0,
+) -> list[PostOut]:
+    """A user's own posts, newest first — the body of their public profile."""
+    if await db.get(User, user_id) is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "user not found")
+    rows = (
+        await db.execute(
+            select(Post, User)
+            .join(User, User.id == Post.author_id)
+            .where(Post.author_id == user_id)
+            .order_by(Post.created_at.desc())
+            .limit(limit)
+            .offset(offset)
+        )
+    ).all()
+    liked = await _liked_ids(db, user.id, "post", [p.id for p, _ in rows])
+    return [_post_out(p, author, p.id in liked) for p, author in rows]
 
 
 # ---------------------------------------------------------------------------

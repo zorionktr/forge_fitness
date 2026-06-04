@@ -108,6 +108,30 @@ export const searchUsers = (q: string) =>
 
 export const getSuggestedUsers = () => api<UserCard[]>("/social/users/suggested");
 
+export interface PublicProfile {
+  id: string;
+  username: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  age: number | null;
+  sex: string | null;
+  goals: string[];
+  follower_count: number;
+  following_count: number;
+  post_count: number;
+  is_following: boolean;
+  is_me: boolean;
+  streaks_public: boolean;
+  gym_streak: number | null;
+  protein_streak: number | null;
+}
+
+export const getUserProfile = (userId: string) =>
+  api<PublicProfile>(`/social/users/${userId}`);
+
+export const getUserPosts = (userId: string) =>
+  api<Post[]>(`/social/users/${userId}/posts`);
+
 // ---- Stories ----
 
 export const getStories = () => api<StoryTray[]>("/social/stories");

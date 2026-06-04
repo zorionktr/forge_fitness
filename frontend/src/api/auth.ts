@@ -7,6 +7,17 @@ export interface TokenResponse {
   token_type: string;
 }
 
+export interface UsernameAvailability {
+  username: string;
+  available: boolean;
+  reason: string | null;
+}
+
+/** Live availability check for the sign-up form (underscores allowed). */
+export function checkUsername(username: string): Promise<UsernameAvailability> {
+  return api<UsernameAvailability>(`/auth/username-available?username=${encodeURIComponent(username)}`);
+}
+
 export function login(email: string, password: string): Promise<TokenResponse> {
   return api<TokenResponse>("/auth/login", {
     method: "POST",

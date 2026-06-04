@@ -23,3 +23,9 @@ class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
+
+
+class UsernameAvailability(BaseModel):
+    username: str
+    available: bool
+    reason: str | None = None  # why it's unavailable (taken / invalid), for the UI

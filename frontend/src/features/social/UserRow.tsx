@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { followUser, unfollowUser, type UserCard } from "@/api/social";
 import { Avatar } from "./Avatar";
 
@@ -28,13 +29,15 @@ export function UserRow({ user }: { user: UserCard }) {
 
   return (
     <div className="urow">
-      <Avatar user={user} size={46} />
-      <div className="urow__meta">
-        <span className="urow__name">{user.display_name || user.username}</span>
-        <span className="urow__sub">
-          @{user.username} · {count} follower{count === 1 ? "" : "s"}
-        </span>
-      </div>
+      <Link className="urow__link" to={`/u/${user.id}`} aria-label={`View @${user.username}`}>
+        <Avatar user={user} size={46} />
+        <div className="urow__meta">
+          <span className="urow__name">{user.display_name || user.username}</span>
+          <span className="urow__sub">
+            @{user.username} · {count} follower{count === 1 ? "" : "s"}
+          </span>
+        </div>
+      </Link>
       <button
         className={`urow__btn ${following ? "urow__btn--on" : ""}`}
         onClick={toggle}

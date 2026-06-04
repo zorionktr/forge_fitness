@@ -7,7 +7,7 @@ import { BrandMark } from "@/features/branding/BrandMark";
 import { OptionCard, SliderField, type Option } from "./parts";
 
 type Goal = "lose" | "build" | "fit" | "health";
-type Sex = "male" | "female" | "other";
+type Sex = "male" | "female" | "lgbtq" | "other";
 type Activity = "sedentary" | "light" | "moderate" | "active" | "athlete";
 type Persona = "hype" | "balanced" | "zen" | "drill";
 type Units = "metric" | "imperial";
@@ -22,6 +22,7 @@ const GOALS: Option<Goal>[] = [
 const SEXES: Option<Sex>[] = [
   { value: "male", label: "Male", icon: "♂" },
   { value: "female", label: "Female", icon: "♀" },
+  { value: "lgbtq", label: "LGBTQ+", icon: "🏳️‍🌈" },
   { value: "other", label: "Prefer not to say", icon: "•" },
 ];
 
@@ -47,7 +48,7 @@ const DRAFT_KEY = "forge.onboarding";
 
 interface Draft {
   step: number;
-  goal: Goal | null;
+  goals: Goal[];
   sex: Sex | null;
   dob: string;
   units: Units;
@@ -92,8 +93,11 @@ export function OnboardingScreen() {
   const [dir, setDir] = useState<1 | -1>(1);
   const [name, setName] = useState<string>("");
 
-  const [goal, setGoal] = useState<Goal | null>(draft.goal ?? null);
+  const [goals, setGoals] = useState<Goal[]>(draft.goals ?? []);
   const [sex, setSex] = useState<Sex | null>(draft.sex ?? null);
+
+  const toggleGoal = (v: Goal) =>
+    setGoals((prev) => (prev.includes(v) ? prev.filter((g) => g !== v) : [...prev, v]));
   const [dob, setDob] = useState(draft.dob ?? "");
   const [units, setUnits] = useState<Units>(draft.units ?? "metric");
   const [heightCm, setHeightCm] = useState(draft.heightCm ?? 173);
@@ -108,14 +112,14 @@ export function OnboardingScreen() {
   // Persist the draft on every change so a reload keeps the filled-in answers.
   useEffect(() => {
     const snapshot: Draft = {
-      step, goal, sex, dob, units, heightCm, weightKg, bodyFat, knowsBodyFat, activity, persona,
+      step, goals, sex, dob, units, heightCm, weightKg, bodyFat, knowsBodyFat, activity, persona,
     };
     try {
       localStorage.setItem(DRAFT_KEY, JSON.stringify(snapshot));
     } catch {
       /* storage full / unavailable — non-fatal */
     }
-  }, [step, goal, sex, dob, units, heightCm, weightKg, bodyFat, knowsBodyFat, activity, persona]);
+  }, [step, goals, sex, dob, units, heightCm, weightKg, bodyFat, knowsBodyFat, activity, persona]);
 
   // Greet by first name if we can read it back from the just-created profile.
   useEffect(() => {
@@ -147,6 +151,7 @@ export function OnboardingScreen() {
     if (submitted.current) return;
     submitted.current = true;
     const patch: ProfileUpdate = {
+      ...(goals.length ? { goals } : {}),
       ...(sex ? { sex } : {}),
       ...(dob ? { dob } : {}),
       height_cm: heightCm,
@@ -221,12 +226,13 @@ export function OnboardingScreen() {
           )}
 
           {step === 1 && (
-            <Question title="What's your main goal?" subtitle="We'll shape your plan around this.">
+            <Question title="What are your goals?" subtitle="Pick all that apply — we'll shape your plan around them.">
               <div className="opt-grid">
                 {GOALS.map((o, i) => (
-                  <OptionCard key={o.value} option={o} index={i} selected={goal === o.value} onSelect={choose(setGoal)} />
+                  <OptionCard key={o.value} option={o} index={i} selected={goals.includes(o.value)} onSelect={toggleGoal} />
                 ))}
               </div>
+              <StepNav onNext={next} disabled={goals.length === 0} />
             </Question>
           )}
 

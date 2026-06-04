@@ -38,6 +38,7 @@ class Profile(Base):
         PGUUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), unique=True
     )
     sex: Mapped[str | None] = mapped_column(String, nullable=True)
+    goals: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)  # multi-select: lose|build|fit|health
     dob: Mapped[date | None] = mapped_column(Date, nullable=True)  # age derived from this
     height_cm: Mapped[float | None] = mapped_column(Numeric(5, 2), nullable=True)
     weight_kg: Mapped[float | None] = mapped_column(Numeric(5, 2), nullable=True)
@@ -55,6 +56,7 @@ class Profile(Base):
     motivation_score: Mapped[float | None] = mapped_column(Numeric(4, 1), nullable=True)
     completeness: Mapped[float] = mapped_column(Float, default=0.0)
     coach_persona: Mapped[str] = mapped_column(String, default="friendly")
+    streaks_public: Mapped[bool] = mapped_column(Boolean, default=True)  # show my streaks to others
     extra: Mapped[dict] = mapped_column(JSONB, default=dict)
 
     user: Mapped[User] = relationship(back_populates="profile")

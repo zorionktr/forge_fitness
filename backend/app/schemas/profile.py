@@ -18,6 +18,7 @@ class ProfileOut(BaseModel):
     role: str
     # profile fields
     sex: str | None
+    goals: list[str] = []
     dob: date | None
     age: int | None
     height_cm: float | None
@@ -25,6 +26,7 @@ class ProfileOut(BaseModel):
     body_fat_pct: float | None
     activity_level: str | None
     coach_persona: str | None
+    streaks_public: bool = True
 
 
 class ProfileUpdate(BaseModel):
@@ -33,12 +35,14 @@ class ProfileUpdate(BaseModel):
     first_name: str | None = Field(default=None, max_length=60)
     last_name: str | None = Field(default=None, max_length=60)
     sex: str | None = Field(default=None, max_length=20)
+    goals: list[str] | None = Field(default=None, max_length=10)
     dob: date | None = None
     height_cm: float | None = Field(default=None, gt=0, lt=300)
     weight_kg: float | None = Field(default=None, gt=0, lt=600)
     body_fat_pct: float | None = Field(default=None, ge=0, le=80)
     activity_level: str | None = None
     coach_persona: str | None = None
+    streaks_public: bool | None = None
 
 
 class MeasurementOut(BaseModel):
