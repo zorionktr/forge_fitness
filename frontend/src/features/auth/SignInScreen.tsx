@@ -8,12 +8,6 @@ import { BrandMark } from "@/features/branding/BrandMark";
 
 type Mode = "login" | "register";
 
-const HIGHLIGHTS = [
-  { icon: "🔥", text: "A coach that adapts to you" },
-  { icon: "📸", text: "Snap a meal, log it in seconds" },
-  { icon: "📈", text: "See every win add up" },
-];
-
 /** Sign in / Register screen (docs/11 §1). Animated welcome + auth, then routes new
  *  users into onboarding and returning users back where they came from. */
 export function SignInScreen() {
@@ -70,14 +64,6 @@ export function SignInScreen() {
           <BrandMark size={64} />
           <h1 className="welcome__title">Forge</h1>
           <p className="welcome__tagline">Your AI coach for training, food, and progress.</p>
-          <ul className="welcome__highlights">
-            {HIGHLIGHTS.map((h, i) => (
-              <li key={h.text} style={{ animationDelay: `${0.5 + i * 0.12}s` }}>
-                <span aria-hidden="true">{h.icon}</span>
-                {h.text}
-              </li>
-            ))}
-          </ul>
         </header>
 
         <form className="auth-card" onSubmit={onSubmit}>

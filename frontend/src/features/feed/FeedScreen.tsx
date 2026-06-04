@@ -1,57 +1,28 @@
-import { useEffect, useState } from "react";
-import { createPost, getFeed, type Post } from "@/api/social";
+import { useQuery } from "@tanstack/react-query";
+import { getFeed } from "@/api/social";
+import { StoriesTray } from "@/features/stories/StoriesTray";
 import { PostCard } from "./PostCard";
 
-/** Social feed — compose a post + scroll the timeline (docs/06). */
+/** Social feed — stories tray + ranked "For You" timeline. Posting is via the top-bar "+". */
 export function FeedScreen() {
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [draft, setDraft] = useState("");
-  const [posting, setPosting] = useState(false);
-
-  useEffect(() => {
-    getFeed()
-      .then(setPosts)
-      .catch(() => setPosts([]))
-      .finally(() => setLoading(false));
-  }, []);
-
-  const onPost = async () => {
-    const body = draft.trim();
-    if (!body || posting) return;
-    setPosting(true);
-    try {
-      const created = await createPost(body);
-      setPosts((p) => [created, ...p]); // prepend so it shows immediately
-      setDraft("");
-    } finally {
-      setPosting(false);
-    }
-  };
+  const { data: posts, isLoading } = useQuery({
+    queryKey: ["feed"],
+    queryFn: getFeed,
+  });
 
   return (
     <div className="feed">
-      <div className="composer">
-        <textarea
-          className="composer__input"
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder="Share a workout, a win, or ask the community…"
-          rows={3}
-          maxLength={5000}
-        />
-        <div className="composer__row">
-          <span className="composer__count">{draft.length}/5000</span>
-          <button className="composer__post" onClick={onPost} disabled={posting || !draft.trim()}>
-            {posting ? "Posting…" : "Post"}
-          </button>
-        </div>
-      </div>
+      <StoriesTray />
 
-      {loading ? (
+      {isLoading ? (
         <p className="feed__empty">Loading feed…</p>
-      ) : posts.length === 0 ? (
-        <p className="feed__empty">No posts yet — be the first to share something! 💪</p>
+      ) : !posts || posts.length === 0 ? (
+        <div className="feed__welcome">
+          <h2 className="feed__welcome-h">Your feed is empty</h2>
+          <p className="feed__welcome-p">
+            Follow people on <b>Discover</b>, or tap <b>+</b> to share a workout, a win, or a progress pic. 💪
+          </p>
+        </div>
       ) : (
         <div className="feed__list">
           {posts.map((p) => (

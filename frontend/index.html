@@ -20,6 +20,48 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      /* DEV-ONLY visual-mock: when forge.mock=1, serve canned social data so the UI can be
+         screenshotted without a backend. Removed after verification. */
+      if (localStorage.getItem("forge.mock") === "1") {
+        const img = (c) => "data:image/svg+xml;utf8," + encodeURIComponent(
+          `<svg xmlns='http://www.w3.org/2000/svg' width='400' height='400'><rect width='400' height='400' fill='${c}'/></svg>`);
+        const now = new Date().toISOString();
+        const future = new Date(Date.now() + 36e5).toISOString();
+        const author = (id, un, dn) => ({ id, username: un, display_name: dn, avatar_url: null });
+        const me = { id: "me", username: "you", display_name: "You", avatar_url: null, role: "user" };
+        const card = (id, un, dn, fc, f) => ({ id, username: un, display_name: dn, avatar_url: null, follower_count: fc, is_following: !!f });
+        const data = {
+          "/profile/me": me,
+          "/social/stories": [
+            { author: author("u1", "sara_lifts", "Sara"), items: [{ id: "s1", author: author("u1","sara_lifts","Sara"), media: [{url: img("#3b2f6b"), type:"image"}], caption: "Leg day done 🔥", created_at: now, expires_at: future, like_count: 4, comment_count: 2, liked_by_me: false }] },
+            { author: author("u2", "mike_runs", "Mike"), items: [{ id: "s2", author: author("u2","mike_runs","Mike"), media: [{url: img("#1f4d3a"), type:"image"}], caption: "10k PR", created_at: now, expires_at: future, like_count: 9, comment_count: 0, liked_by_me: false }] },
+            { author: author("u3", "lena_fit", "Lena"), items: [{ id: "s3", author: author("u3","lena_fit","Lena"), media: [{url: img("#5a2f3a"), type:"image"}], caption: "", created_at: now, expires_at: future, like_count: 1, comment_count: 0, liked_by_me: false }] }
+          ],
+          "/social/feed": [
+            { id: "p1", author: author("u1","sara_lifts","Sara"), kind: "image", body: "New squat PR today — 120kg x3! Form felt clean.", media: [{url: img("#2b3550"), type:"image"}], tags: ["legday","squat"], like_count: 18, comment_count: 4, liked_by_me: true, created_at: now, reason: "Followed" },
+            { id: "p2", author: author("u4","coach_dan","Dan"), kind: "text", body: "Protein timing matters less than total daily intake. Hit your target and you're 90% there.", media: [], tags: ["nutrition"], like_count: 42, comment_count: 11, liked_by_me: false, created_at: now, reason: "Popular in #nutrition" },
+            { id: "p3", author: author("u2","mike_runs","Mike"), kind: "image", body: "Sunrise 10k.", media: [{url: img("#1f4d3a"), type:"image"}], tags: ["running"], like_count: 7, comment_count: 1, liked_by_me: false, created_at: now, reason: "Suggested for you" }
+          ],
+          "/social/users/suggested": [
+            card("u1","sara_lifts","Sara Lifts",1240,false),
+            card("u4","coach_dan","Coach Dan",8800,true),
+            card("u2","mike_runs","Mike",430,false),
+            card("u3","lena_fit","Lena",96,false)
+          ]
+        };
+        const origFetch = window.fetch.bind(window);
+        window.fetch = (url, opts) => {
+          const u = String(url);
+          const path = u.startsWith("/api/v1") ? u.slice(7) : u;
+          const base = path.split("?")[0];
+          let body = data[base];
+          if (base === "/social/users/search") body = data["/social/users/suggested"].slice(0, 3);
+          if (body !== undefined) return Promise.resolve(new Response(JSON.stringify(body), { status: 200, headers: { "Content-Type": "application/json" } }));
+          return origFetch(url, opts);
+        };
+      }
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

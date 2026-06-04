@@ -9,15 +9,20 @@
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--text); }
 
-.app { display: flex; flex-direction: column; height: 100vh; max-width: 560px; margin: 0 auto; }
-.app__bar { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid #222b38; }
-.app__brand { font-weight: 700; letter-spacing: 0.5px; }
-.app__logout { background: transparent; color: var(--muted); border: 1px solid #222b38; border-radius: 10px; padding: 6px 12px; font-size: 13px; cursor: pointer; }
-.app__logout:hover { color: var(--text); }
-.app__main { flex: 1; overflow-y: auto; }
-.app__tabs { display: flex; border-top: 1px solid #222b38; }
-.tab { flex: 1; text-align: center; padding: 12px; color: var(--muted); text-decoration: none; font-size: 13px; }
-.tab--active { color: var(--accent); font-weight: 600; }
+/* 100dvh (not 100vh) so the bottom tab bar isn't hidden under mobile browser chrome. */
+.app { display: flex; flex-direction: column; height: 100dvh; max-width: 560px; margin: 0 auto; }
+.app__bar { display: flex; align-items: center; justify-content: space-between; padding: calc(10px + var(--safe-top, 0px)) 16px 10px; border-bottom: 1px solid #222b38; }
+.app__logo { display: flex; align-items: center; gap: 8px; }
+.app__brand { font-weight: 800; letter-spacing: 0.3px; font-size: 17px; background: linear-gradient(120deg, #fff, #ffd9c9 70%, #ff9aa8); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.app__new { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border: 0; border-radius: 12px; color: #fff; cursor: pointer; background: linear-gradient(120deg, var(--accent-3, #ffb347), var(--accent) 50%, var(--accent-2, #ff2d75)); box-shadow: 0 6px 16px -6px rgba(255, 90, 54, 0.7); transition: transform 0.14s ease, box-shadow 0.2s ease; }
+.app__new:hover { transform: translateY(-1px) rotate(90deg); box-shadow: 0 10px 22px -6px rgba(255, 90, 54, 0.8); }
+.app__new:active { transform: scale(0.94); }
+.app__main { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.app__tabs { display: flex; border-top: 1px solid #222b38; padding-bottom: var(--safe-bottom, 0px); background: var(--bg); }
+.tab { flex: 1; display: flex; align-items: center; justify-content: center; padding: 12px 0; color: var(--muted); text-decoration: none; transition: color 0.15s ease, transform 0.12s ease; }
+.tab svg { display: block; }
+.tab:active { transform: scale(0.88); }
+.tab--active { color: var(--accent); }
 
 .screen { padding: 24px; color: var(--muted); }
 

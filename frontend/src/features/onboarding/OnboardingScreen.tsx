@@ -42,6 +42,33 @@ const PERSONAS: Option<Persona>[] = [
 
 const QUESTION_COUNT = 6; // goal, sex, dob, body, activity, persona
 
+// --- Draft persistence: keep answers across reloads so a refresh mid-flow doesn't reset.
+const DRAFT_KEY = "forge.onboarding";
+
+interface Draft {
+  step: number;
+  goal: Goal | null;
+  sex: Sex | null;
+  dob: string;
+  units: Units;
+  heightCm: number;
+  weightKg: number;
+  bodyFat: number;
+  knowsBodyFat: boolean;
+  activity: Activity | null;
+  persona: Persona | null;
+}
+
+function loadDraft(): Partial<Draft> {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    return raw ? (JSON.parse(raw) as Partial<Draft>) : {};
+  } catch {
+    return {};
+  }
+}
+const clearDraft = () => localStorage.removeItem(DRAFT_KEY);
+
 const cmToInches = (cm: number) => cm / 2.54;
 const inchesToCm = (inch: number) => Math.round(inch * 2.54);
 const kgToLb = (kg: number) => kg * 2.2046;
@@ -56,21 +83,39 @@ const ftIn = (cm: number) => {
 export function OnboardingScreen() {
   const navigate = useNavigate();
 
-  // step 0 = intro, 1..QUESTION_COUNT = questions, QUESTION_COUNT+1 = building
-  const [step, setStep] = useState(0);
+  // Hydrate from a saved draft (if any) so a refresh resumes where the user left off.
+  const draft = useRef(loadDraft()).current;
+
+  // step 0 = intro, 1..QUESTION_COUNT = questions, QUESTION_COUNT+1 = building.
+  // Never resume on the terminal "building" step — re-enter the last question instead.
+  const [step, setStep] = useState(Math.min(draft.step ?? 0, QUESTION_COUNT));
   const [dir, setDir] = useState<1 | -1>(1);
   const [name, setName] = useState<string>("");
 
-  const [goal, setGoal] = useState<Goal | null>(null);
-  const [sex, setSex] = useState<Sex | null>(null);
-  const [dob, setDob] = useState("");
-  const [units, setUnits] = useState<Units>("metric");
-  const [heightCm, setHeightCm] = useState(173);
-  const [weightKg, setWeightKg] = useState(72);
-  const [bodyFat, setBodyFat] = useState(20);
-  const [knowsBodyFat, setKnowsBodyFat] = useState(false);
+  const [goal, setGoal] = useState<Goal | null>(draft.goal ?? null);
+  const [sex, setSex] = useState<Sex | null>(draft.sex ?? null);
+  const [dob, setDob] = useState(draft.dob ?? "");
+  const [units, setUnits] = useState<Units>(draft.units ?? "metric");
+  const [heightCm, setHeightCm] = useState(draft.heightCm ?? 173);
+  const [weightKg, setWeightKg] = useState(draft.weightKg ?? 72);
+  const [bodyFat, setBodyFat] = useState(draft.bodyFat ?? 20);
+  const [knowsBodyFat, setKnowsBodyFat] = useState(draft.knowsBodyFat ?? false);
+  const [activity, setActivity] = useState<Activity | null>(draft.activity ?? null);
+  const [persona, setPersona] = useState<Persona | null>(draft.persona ?? null);
 
   const [error, setError] = useState<string | null>(null);
+
+  // Persist the draft on every change so a reload keeps the filled-in answers.
+  useEffect(() => {
+    const snapshot: Draft = {
+      step, goal, sex, dob, units, heightCm, weightKg, bodyFat, knowsBodyFat, activity, persona,
+    };
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(snapshot));
+    } catch {
+      /* storage full / unavailable — non-fatal */
+    }
+  }, [step, goal, sex, dob, units, heightCm, weightKg, bodyFat, knowsBodyFat, activity, persona]);
 
   // Greet by first name if we can read it back from the just-created profile.
   useEffect(() => {
@@ -107,11 +152,12 @@ export function OnboardingScreen() {
       height_cm: heightCm,
       weight_kg: weightKg,
       ...(knowsBodyFat ? { body_fat_pct: bodyFat } : {}),
-      ...(activityRef.current ? { activity_level: activityRef.current } : {}),
-      ...(personaRef.current ? { coach_persona: personaRef.current } : {}),
+      ...(activity ? { activity_level: activity } : {}),
+      ...(persona ? { coach_persona: persona } : {}),
     };
     try {
       await updateProfile(patch);
+      clearDraft(); // finished — drop the saved answers
       // Brief beat so the "forging" animation reads as finishing, then enter the app.
       window.setTimeout(() => navigate("/feed", { replace: true }), 900);
     } catch (err) {
@@ -120,10 +166,10 @@ export function OnboardingScreen() {
     }
   };
 
-  // Activity & persona are chosen on the last two steps right before building; keep
-  // refs so the auto-submit on entering the build step sees the latest values.
-  const activityRef = useRef<Activity | null>(null);
-  const personaRef = useRef<Persona | null>(null);
+  const skip = () => {
+    clearDraft();
+    navigate("/feed", { replace: true });
+  };
 
   // Kick off the save once we land on the building step.
   useEffect(() => {
@@ -151,7 +197,7 @@ export function OnboardingScreen() {
           <div className="onb__progress">
             <span className="onb__progress-fill" style={{ width: `${progressPct}%` }} />
           </div>
-          <button type="button" className="onb__skip" onClick={() => navigate("/feed", { replace: true })}>
+          <button type="button" className="onb__skip" onClick={skip}>
             Skip
           </button>
         </header>
@@ -274,10 +320,8 @@ export function OnboardingScreen() {
                     key={o.value}
                     option={o}
                     index={i}
-                    selected={activityRef.current === o.value}
-                    onSelect={choose((v: Activity) => {
-                      activityRef.current = v;
-                    })}
+                    selected={activity === o.value}
+                    onSelect={choose(setActivity)}
                   />
                 ))}
               </div>
@@ -292,10 +336,8 @@ export function OnboardingScreen() {
                     key={o.value}
                     option={o}
                     index={i}
-                    selected={personaRef.current === o.value}
-                    onSelect={choose((v: Persona) => {
-                      personaRef.current = v;
-                    })}
+                    selected={persona === o.value}
+                    onSelect={choose(setPersona)}
                   />
                 ))}
               </div>

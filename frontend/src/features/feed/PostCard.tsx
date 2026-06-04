@@ -63,9 +63,31 @@ export function PostCard({ post }: { post: Post }) {
           <span className="post__name">{post.author.display_name || post.author.username}</span>
           <span className="post__meta">@{post.author.username} · {timeAgo(post.created_at)}</span>
         </div>
+        {post.reason && <span className="post__reason">{post.reason}</span>}
       </header>
 
       {post.body && <p className="post__body">{post.body}</p>}
+
+      {post.media.length > 0 && (
+        <div className={`post__media post__media--n${Math.min(post.media.length, 4)}`}>
+          {post.media.slice(0, 4).map((m, i) => (
+            <div className="post__media-cell" key={m.url}>
+              <img src={m.url} alt="" loading="lazy" />
+              {i === 3 && post.media.length > 4 && (
+                <span className="post__media-more">+{post.media.length - 4}</span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {post.tags.length > 0 && (
+        <div className="post__tags">
+          {post.tags.map((t) => (
+            <span className="post__tag" key={t}>#{t}</span>
+          ))}
+        </div>
+      )}
 
       <footer className="post__actions">
         <button className={`post__action ${liked ? "post__action--on" : ""}`} onClick={onLike}>

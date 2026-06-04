@@ -6,6 +6,7 @@ import { NutritionScreen } from "@/features/nutrition/NutritionScreen";
 import { RequireAuth } from "@/features/auth/RequireAuth";
 import { SignInScreen } from "@/features/auth/SignInScreen";
 import { OnboardingScreen } from "@/features/onboarding/OnboardingScreen";
+import { DiscoverScreen } from "@/features/discover/DiscoverScreen";
 import { ProfileScreen } from "@/features/profile/ProfileScreen";
 
 // Feature screens are lazy-loaded in a fuller build. Scaffold wires the core routes (docs/08 §2).
@@ -22,6 +23,7 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <Navigate to="/feed" replace /> },
           { path: "feed", element: <FeedScreen /> },
+          { path: "discover", element: <DiscoverScreen /> },
           { path: "chat", element: <ChatScreen /> },
           { path: "nutrition", element: <NutritionScreen /> },
           { path: "progress", element: <div className="screen">Progress (docs/02 §3.4)</div> },
