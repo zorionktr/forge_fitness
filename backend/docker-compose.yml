@@ -34,6 +34,16 @@ services:
     depends_on: [api]
     command: celery -A app.workers.celery_app beat --loglevel=info
 
+  # Local LLM server for nutrition-label parsing (DocTR reads text → Qwen structures it).
+  # Host networking so api/worker reach it at localhost:11434. After it's up, pull the model:
+  #   docker compose exec ollama ollama pull qwen2.5:7b
+  # (CPU works but is slow; a GPU host makes scans near-instant. Disable via FORGE_OCR_USE_LLM=false.)
+  ollama:
+    image: ollama/ollama:latest
+    network_mode: host
+    volumes: ["ollama:/root/.ollama"]   # persist pulled models (qwen2.5:7b ≈ 4.7 GB)
+    restart: unless-stopped
+
   # Local stand-ins for prod (docs/12): Redpanda ~ Kafka, MinIO ~ S3.
   # Qdrant runs on the HOST (already listening on :6333) — not containerized here.
   redpanda:
@@ -50,3 +60,4 @@ services:
 volumes:
   hfcache:  # cached HuggingFace model weights (BGE-M3) so rebuilds don't re-download ~2 GB
   doctrcache:  # cached DocTR OCR model weights so rebuilds don't re-download them
+  ollama:  # pulled Ollama models (qwen2.5:7b) so they survive container restarts

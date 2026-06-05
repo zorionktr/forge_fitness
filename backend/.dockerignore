@@ -1,0 +1,19 @@
+# Keep the build context small and the COPY layers cache-stable.
+**/__pycache__/
+**/*.py[cod]
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+.git/
+.gitignore
+.env
+.env.*
+tests/
+*.md
+# local virtualenvs / build artifacts that must never leak into the image
+.venv/
+venv/
+env/
+build/
+dist/
+*.egg-info/

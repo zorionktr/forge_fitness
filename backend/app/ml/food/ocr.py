@@ -1,18 +1,21 @@
-"""Nutrition-label / ingredient OCR via DocTR (docs/05 §3.1).
+"""Nutrition-label / ingredient OCR via DocTR + local Qwen (docs/05 §3.1).
 
-Replaces the Claude-vision extractor with a fully on-box pipeline: a local **DocTR**
-detection+recognition model reads the raw text off the label photo, and a heuristic
-parser maps that text to per-serving macros. No LLM call, no API key, no per-request cost.
+Replaces the Claude-vision extractor with a fully on-box pipeline, in two stages:
+  1. **DocTR** (detection+recognition) reads the raw text off the label photo — pixels → text.
+  2. **Qwen 2.5 7B** (local, via Ollama) understands that messy text and structures it into
+     per-serving macros — the "intelligence" Claude provided, but on-box and free. See
+     ``llm_extract.py``.
 
-Nutrition panels are tabular — the nutrient name sits on the left and its value on the
-right, often far enough apart that DocTR emits them as *separate* line objects. So the
-primary parser is **geometry-aware**: it regroups words into rows by vertical position and,
-for each nutrient, takes the first number to the *right* of the label on that row. A simple
-line-text parser is kept as a fallback to fill any gaps.
+DocTR has no understanding, so a **heuristic** parser is always computed as a safety net and
+merged under the LLM result (it also covers the case where Ollama/Qwen isn't running). The
+heuristic is geometry-aware: nutrition panels are tabular (label on the left, value on the
+right, often emitted as *separate* DocTR lines), so it regroups words into rows by vertical
+position and takes the first number to the right of each nutrient label, with a line-text
+parser beneath that.
 
-The model is heavy, so it's lazy-loaded once per process and cached (mirroring the BGE-M3
-embedder). OCR inference is CPU-bound and synchronous, so the request-path wrapper offloads
-it to a worker thread to avoid stalling the event loop.
+The DocTR model is heavy, so it's lazy-loaded once per process and cached (mirroring the
+BGE-M3 embedder); its CPU-bound inference is offloaded to a worker thread. The Qwen call is
+plain async HTTP to Ollama, so the 7B weights live outside the API process entirely.
 """
 from __future__ import annotations
 
@@ -22,6 +25,9 @@ from functools import lru_cache
 from typing import TYPE_CHECKING, Any
 
 import anyio
+
+from app.core.config import settings
+from app.ml.food.llm_extract import extract_fields_with_llm
 
 logger = logging.getLogger(__name__)
 
@@ -244,7 +250,23 @@ async def extract_food_label(image_bytes: bytes, media_type: str) -> dict[str, A
     if not text.strip() and not words:
         raise RuntimeError("DocTR returned no text from the image")
 
-    parsed = parse_document(text, words)
+    # Heuristic (geometry + regex) parse is always computed as a safety net.
+    heuristic = parse_document(text, words)
+
+    # Primary: let the local LLM (Qwen) understand the OCR text. Merge field-by-field,
+    # preferring the LLM but falling back to the heuristic for anything it left null.
+    parsed = heuristic
+    if settings.ocr_use_llm:
+        llm = await extract_fields_with_llm(text)
+        if llm is not None:
+            merged = dict(heuristic)
+            for k, v in llm.items():
+                if v is not None:
+                    merged[k] = v
+            merged["raw_text"] = text
+            parsed = merged
+            logger.info("Qwen structured the label; merged with heuristic fallback.")
+
     logger.info(
         "Parsed label → cal=%s protein=%s carbs=%s fat=%s sodium=%s serving=%r",
         parsed.get("calories"), parsed.get("protein_g"), parsed.get("carbs_g"),

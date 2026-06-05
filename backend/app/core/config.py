@@ -46,6 +46,12 @@ class Settings(BaseSettings):
     embedding_model: str = "BAAI/bge-m3"  # local sentence-transformers model (docs/04 §3)
     embedding_dim: int = 1024  # BGE-M3 dense dim; keep in sync with the pgvector column
 
+    # --- Local LLM (Ollama) — structures DocTR OCR text into nutrition fields (docs/05 §3.1) ---
+    ocr_use_llm: bool = True  # parse OCR text with a local LLM; heuristic parser is the fallback
+    local_llm_base_url: str = "http://localhost:11434"  # Ollama endpoint (reachable via host networking)
+    ocr_model: str = "qwen2.5:7b"  # local model that turns OCR text into structured macros
+    ocr_llm_timeout_s: float = 90.0  # generation can be slow on CPU; keep the timeout generous
+
     # --- Storage / events ---
     s3_bucket: str = "forge-media-local"
     s3_endpoint_url: str | None = None  # MinIO for local
