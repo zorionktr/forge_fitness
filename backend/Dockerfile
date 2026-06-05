@@ -21,12 +21,17 @@ RUN pip install .
 
 # --- runtime: copy the venv, run as non-root ---
 FROM base AS runtime
-ENV VIRTUAL_ENV=/opt/venv PATH=/opt/venv/bin:$PATH
+ENV VIRTUAL_ENV=/opt/venv PATH=/opt/venv/bin:$PATH \
+    DOCTR_CACHE_DIR=/home/forge/.cache/doctr
+# OpenCV (a DocTR dep) needs libGL + glib at runtime; not present on python:slim.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libgl1 libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /opt/venv /opt/venv
 COPY app ./app
 COPY alembic ./alembic
 COPY alembic.ini ./
-RUN useradd -m -u 10001 forge && chown -R forge /app
+RUN useradd -m -u 10001 forge && mkdir -p /home/forge/.cache/doctr && chown -R forge /app /home/forge
 USER forge
 EXPOSE 8001
 # API entrypoint; worker/beat override `command` in docker-compose / K8s.

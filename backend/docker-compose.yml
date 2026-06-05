@@ -8,16 +8,22 @@ services:
     image: forge-backend:local        # built once here; worker/beat reuse this tag
     network_mode: host                 # localhost == host loopback; uvicorn binds host :8001
     env_file: [.env]
-    environment: { HF_HOME: /home/forge/.cache/huggingface }  # persist BGE-M3 weights (docs/04 §3)
-    volumes: ["./app:/app/app", "hfcache:/home/forge/.cache/huggingface"]
+    # persist BGE-M3 (HF) + DocTR OCR weights so rebuilds don't re-download them
+    environment: { HF_HOME: /home/forge/.cache/huggingface, DOCTR_CACHE_DIR: /home/forge/.cache/doctr }
+    volumes:
+      - "./app:/app/app"
+      - "hfcache:/home/forge/.cache/huggingface"
+      - "doctrcache:/home/forge/.cache/doctr"
     command: uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
 
   worker:
     image: forge-backend:local
     network_mode: host
     env_file: [.env]
-    environment: { HF_HOME: /home/forge/.cache/huggingface }
-    volumes: ["hfcache:/home/forge/.cache/huggingface"]
+    environment: { HF_HOME: /home/forge/.cache/huggingface, DOCTR_CACHE_DIR: /home/forge/.cache/doctr }
+    volumes:
+      - "hfcache:/home/forge/.cache/huggingface"
+      - "doctrcache:/home/forge/.cache/doctr"
     depends_on: [api]
     command: celery -A app.workers.celery_app worker --loglevel=info
 
@@ -43,3 +49,4 @@ services:
 
 volumes:
   hfcache:  # cached HuggingFace model weights (BGE-M3) so rebuilds don't re-download ~2 GB
+  doctrcache:  # cached DocTR OCR model weights so rebuilds don't re-download them

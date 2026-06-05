@@ -11,6 +11,7 @@ import {
   type FoodDraft,
 } from "@/api/nutrition";
 import { FoodReview } from "./FoodReview";
+import { LabelCropper } from "./LabelCropper";
 
 const MEALS = ["breakfast", "lunch", "dinner", "snack"];
 
@@ -84,6 +85,7 @@ export function NutritionScreen() {
   const [selectedDay, setSelectedDay] = useState(TODAY);
   const [day, setDay] = useState<DayNutrition | null>(null);
   const [draft, setDraft] = useState<FoodDraft | null>(null);
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -98,10 +100,14 @@ export function NutritionScreen() {
 
   const reloadDay = () => getDay(selectedDay).then(setDay).catch(() => {});
 
-  const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Pick/take a photo → open the cropper so the user can frame the label before OCR.
+  const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (fileRef.current) fileRef.current.value = "";
-    if (!file) return;
+    if (file) setCropSrc(URL.createObjectURL(file));
+  };
+
+  const analyzeFile = async (file: File) => {
     setAnalyzing(true);
     setError(null);
     try {
@@ -111,6 +117,17 @@ export function NutritionScreen() {
     } finally {
       setAnalyzing(false);
     }
+  };
+
+  const onCropped = async (blob: Blob) => {
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    setCropSrc(null);
+    await analyzeFile(new File([blob], "label.jpg", { type: "image/jpeg" }));
+  };
+
+  const closeCropper = () => {
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    setCropSrc(null);
   };
 
   const onLog = async (food: Food, meal: string) => {
@@ -193,6 +210,8 @@ export function NutritionScreen() {
           ))}
         </div>
       )}
+
+      {cropSrc && <LabelCropper src={cropSrc} onCancel={closeCropper} onCropped={onCropped} />}
 
       {draft && (
         <FoodReview

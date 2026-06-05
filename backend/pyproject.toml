@@ -19,6 +19,7 @@ dependencies = [
     "alembic>=1.13",
     "pgvector>=0.3",
     "sentence-transformers>=3.0",  # local BGE-M3 embeddings (docs/04 §3)
+    "python-doctr[torch]>=0.8",  # local nutrition-label OCR (docs/05 §3.1); pulls torch+torchvision
     "redis>=5.0",
     "celery>=5.4",
     "anthropic>=0.39",

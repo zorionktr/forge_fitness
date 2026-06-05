@@ -13,7 +13,7 @@ from sqlalchemy import select
 from app.api.deps import CurrentUser, DbDep
 from app.db.models.nutrition import Food, MealLog
 from app.integrations.storage import upload_bytes
-from app.ml.food.vision import extract_food_label
+from app.ml.food.ocr import extract_food_label
 from app.schemas.nutrition import (
     DayNutrition,
     DayTotals,
