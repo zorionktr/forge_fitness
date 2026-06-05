@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { addStoryComment, likeStory, type StoryTray } from "@/api/social";
 import { timeAgo } from "@/lib/time";
+import { mediaUrl } from "@/lib/media";
 import { Avatar } from "@/features/social/Avatar";
 
 const ITEM_MS = 5000;
@@ -138,7 +139,7 @@ export function StoryViewer({
       <button className="sv__zone sv__zone--next" onClick={next} aria-label="Next" />
 
       <div className="sv__stage">
-        {media ? <img className="sv__img" src={media.url} alt="" /> : <div className="sv__img sv__img--empty" />}
+        {media ? <img className="sv__img" src={mediaUrl(media.url)} alt="" /> : <div className="sv__img sv__img--empty" />}
         {item.caption && <p className="sv__caption">{item.caption}</p>}
       </div>
 

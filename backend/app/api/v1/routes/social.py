@@ -403,6 +403,7 @@ async def get_user_profile(user_id: uuid.UUID, user: CurrentUser, db: DbDep) -> 
         username=target.username,
         display_name=target.display_name,
         avatar_url=target.avatar_url,
+        bio=profile.bio if profile else None,
         age=_age(profile.dob) if profile else None,
         sex=profile.sex if profile else None,
         goals=list(profile.goals or []) if profile else [],

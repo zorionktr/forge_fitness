@@ -9,6 +9,7 @@ export interface Profile {
   display_name: string | null;
   avatar_url: string | null;
   role: string;
+  bio: string | null;
   sex: string | null;
   goals: string[];
   dob: string | null; // YYYY-MM-DD
@@ -33,6 +34,7 @@ export interface Measurement {
 export type ProfileUpdate = Partial<{
   first_name: string;
   last_name: string;
+  bio: string;
   sex: string;
   goals: string[];
   dob: string;

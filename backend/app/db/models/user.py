@@ -37,6 +37,7 @@ class Profile(Base):
     user_id: Mapped[uuid.UUID] = mapped_column(
         PGUUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), unique=True
     )
+    bio: Mapped[str | None] = mapped_column(Text, nullable=True)  # short "about me" shown on the profile
     sex: Mapped[str | None] = mapped_column(String, nullable=True)
     goals: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)  # multi-select: lose|build|fit|health
     dob: Mapped[date | None] = mapped_column(Date, nullable=True)  # age derived from this

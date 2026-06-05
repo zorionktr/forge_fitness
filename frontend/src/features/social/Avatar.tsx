@@ -1,3 +1,5 @@
+import { mediaUrl } from "@/lib/media";
+
 interface AvatarUser {
   username: string;
   display_name: string | null;
@@ -12,7 +14,7 @@ export function Avatar({ user, size = 44, ring }: { user: AvatarUser; size?: num
   return (
     <span className={cls} style={{ width: size, height: size }}>
       <span className="uavatar__inner" style={{ fontSize: size * 0.36 }}>
-        {user.avatar_url ? <img src={user.avatar_url} alt="" /> : initials}
+        {user.avatar_url ? <img src={mediaUrl(user.avatar_url)} alt="" /> : initials}
       </span>
     </span>
   );

@@ -3,13 +3,12 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   followUser,
-  getUserPosts,
   getUserProfile,
   unfollowUser,
   type PublicProfile,
 } from "@/api/social";
 import { Avatar } from "@/features/social/Avatar";
-import { PostCard } from "@/features/feed/PostCard";
+import { ProfilePosts } from "./ProfilePosts";
 
 const GOAL_LABELS: Record<string, string> = {
   lose: "Lose fat",
@@ -35,12 +34,6 @@ export function PublicProfileScreen() {
     queryFn: () => getUserProfile(userId),
     enabled: !!userId,
   });
-  const postsQ = useQuery({
-    queryKey: ["publicPosts", userId],
-    queryFn: () => getUserPosts(userId),
-    enabled: !!userId,
-  });
-
   // Redirect to own editable profile if this is me.
   useEffect(() => {
     if (profileQ.data?.is_me) navigate("/profile", { replace: true });
@@ -78,6 +71,8 @@ export function PublicProfileScreen() {
         <FollowButton profile={p} />
       </header>
 
+      {p.bio && <p className="pubprofile__bio">{p.bio}</p>}
+
       <div className="pubprofile__stats">
         <Stat n={p.post_count} label="Posts" />
         <Stat n={p.follower_count} label="Followers" />
@@ -102,13 +97,7 @@ export function PublicProfileScreen() {
       )}
 
       <section className="pubprofile__posts">
-        {postsQ.isLoading && <p className="pubprofile__empty">Loading posts…</p>}
-        {postsQ.data && postsQ.data.length === 0 && (
-          <p className="pubprofile__empty">@{p.username} hasn't posted yet.</p>
-        )}
-        {postsQ.data?.map((post) => (
-          <PostCard key={post.id} post={post} />
-        ))}
+        <ProfilePosts userId={p.id} emptyText={`@${p.username} hasn't posted yet.`} />
       </section>
     </div>
   );

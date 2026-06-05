@@ -1,14 +1,25 @@
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { getFeed } from "@/api/social";
+import { useInfiniteScroll } from "@/lib/useInfiniteScroll";
 import { StoriesTray } from "@/features/stories/StoriesTray";
 import { PostCard } from "./PostCard";
 
-/** Social feed — stories tray + ranked "For You" timeline. Posting is via the top-bar "+". */
+const PAGE_SIZE = 10;
+
+/** Social feed — stories tray + ranked "For You" timeline, lazy-loaded as you scroll.
+ *  Posting is via the top-bar "+". */
 export function FeedScreen() {
-  const { data: posts, isLoading } = useQuery({
+  const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useInfiniteQuery({
     queryKey: ["feed"],
-    queryFn: getFeed,
+    queryFn: ({ pageParam }) => getFeed(PAGE_SIZE, pageParam),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) =>
+      lastPage.length < PAGE_SIZE ? undefined : allPages.length * PAGE_SIZE,
   });
+
+  const sentinelRef = useInfiniteScroll(fetchNextPage, !!hasNextPage && !isFetchingNextPage);
+
+  const posts = data?.pages.flat() ?? [];
 
   return (
     <div className="feed">
@@ -16,7 +27,7 @@ export function FeedScreen() {
 
       {isLoading ? (
         <p className="feed__empty">Loading feed…</p>
-      ) : !posts || posts.length === 0 ? (
+      ) : posts.length === 0 ? (
         <div className="feed__welcome">
           <h2 className="feed__welcome-h">Your feed is empty</h2>
           <p className="feed__welcome-p">
@@ -28,6 +39,8 @@ export function FeedScreen() {
           {posts.map((p) => (
             <PostCard key={p.id} post={p} />
           ))}
+          <div ref={sentinelRef} className="feed__sentinel" aria-hidden="true" />
+          {isFetchingNextPage && <p className="feed__empty">Loading more…</p>}
         </div>
       )}
     </div>

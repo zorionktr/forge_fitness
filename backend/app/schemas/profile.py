@@ -17,6 +17,7 @@ class ProfileOut(BaseModel):
     avatar_url: str | None
     role: str
     # profile fields
+    bio: str | None = None
     sex: str | None
     goals: list[str] = []
     dob: date | None
@@ -34,6 +35,7 @@ class ProfileUpdate(BaseModel):
 
     first_name: str | None = Field(default=None, max_length=60)
     last_name: str | None = Field(default=None, max_length=60)
+    bio: str | None = Field(default=None, max_length=500)
     sex: str | None = Field(default=None, max_length=20)
     goals: list[str] | None = Field(default=None, max_length=10)
     dob: date | None = None

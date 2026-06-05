@@ -10,11 +10,15 @@ import {
   type Measurement,
   type Profile,
 } from "@/api/profile";
+import { mediaUrl } from "@/lib/media";
 import { AvatarCropper } from "./AvatarCropper";
+import { ProfilePosts } from "./ProfilePosts";
+import { InstallApp } from "./InstallApp";
 
 type FormState = {
   first_name: string;
   last_name: string;
+  bio: string;
   sex: string;
   dob: string;
   height_cm: string;
@@ -26,6 +30,7 @@ function toForm(p: Profile): FormState {
   return {
     first_name: p.first_name ?? "",
     last_name: p.last_name ?? "",
+    bio: p.bio ?? "",
     sex: p.sex ?? "",
     dob: p.dob ?? "",
     height_cm: p.height_cm?.toString() ?? "",
@@ -79,6 +84,7 @@ export function ProfileScreen() {
       const updated = await updateProfile({
         first_name: form.first_name.trim(),
         last_name: form.last_name.trim(),
+        bio: form.bio.trim(),
         sex: form.sex || undefined,
         dob: form.dob || undefined,
         height_cm: num(form.height_cm),
@@ -159,7 +165,7 @@ export function ProfileScreen() {
           title={editing ? "Change photo" : undefined}
           disabled={!editing}
         >
-          {profile.avatar_url ? <img src={profile.avatar_url} alt="avatar" /> : <span>{initials}</span>}
+          {profile.avatar_url ? <img src={mediaUrl(profile.avatar_url)} alt="avatar" /> : <span>{initials}</span>}
           {editing && <span className="avatar__cam">📷</span>}
         </button>
         <input ref={fileRef} type="file" accept="image/*" hidden onChange={onPickFile} />
@@ -177,6 +183,8 @@ export function ProfileScreen() {
         )}
       </div>
 
+      {!editing && profile.bio && <p className="profile__bio">{profile.bio}</p>}
+
       {editing ? (
         <div className="form">
           <div className="form__row">
@@ -189,6 +197,17 @@ export function ProfileScreen() {
               <input value={form.last_name} onChange={(e) => set("last_name", e.target.value)} />
             </label>
           </div>
+          <label className="field">
+            <span>Bio</span>
+            <textarea
+              className="field__textarea"
+              value={form.bio}
+              onChange={(e) => set("bio", e.target.value)}
+              maxLength={500}
+              rows={3}
+              placeholder="A line or two about you, your goals, your PRs…"
+            />
+          </label>
           <div className="form__row">
             <label className="field">
               <span>Date of birth</span>
@@ -245,6 +264,13 @@ export function ProfileScreen() {
         </div>
       )}
 
+      {!editing && (
+        <div className="profile-posts">
+          <h3 className="profile-posts__title">Your posts</h3>
+          <ProfilePosts userId={profile.id} emptyText="You haven't posted yet — tap + to share your first." />
+        </div>
+      )}
+
       <div className="history">
         <h3 className="history__title">Weight &amp; height history</h3>
         {measurements.length === 0 ? (
@@ -264,6 +290,8 @@ export function ProfileScreen() {
           </ul>
         )}
       </div>
+
+      <InstallApp />
 
       <div className="settings">
         <div className="settings__text">

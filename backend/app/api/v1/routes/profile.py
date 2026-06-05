@@ -51,6 +51,7 @@ def _to_out(user: User, profile: Profile) -> ProfileOut:
         display_name=user.display_name,
         avatar_url=user.avatar_url,
         role=user.role,
+        bio=profile.bio,
         sex=profile.sex,
         goals=list(profile.goals or []),
         dob=profile.dob,
@@ -80,6 +81,8 @@ async def update_me(body: ProfileUpdate, user: CurrentUser, db: DbDep) -> Profil
         user.last_name = body.last_name.strip() or None
     if body.first_name is not None or body.last_name is not None:
         user.display_name = " ".join(p for p in [user.first_name, user.last_name] if p) or None
+    if body.bio is not None:
+        profile.bio = body.bio.strip() or None
 
     # --- profile fields; detect height/weight/body-fat changes for history ---
     old = (_as_float(profile.weight_kg), _as_float(profile.height_cm), _as_float(profile.body_fat_pct))

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { addComment, getComments, toggleLike, type Comment, type Post } from "@/api/social";
 import { timeAgo } from "@/lib/time";
+import { mediaUrl } from "@/lib/media";
 
 function initials(p: Post): string {
   const name = p.author.display_name || p.author.username;
@@ -72,7 +73,7 @@ export function PostCard({ post }: { post: Post }) {
         <div className={`post__media post__media--n${Math.min(post.media.length, 4)}`}>
           {post.media.slice(0, 4).map((m, i) => (
             <div className="post__media-cell" key={m.url}>
-              <img src={m.url} alt="" loading="lazy" />
+              <img src={mediaUrl(m.url)} alt="" loading="lazy" />
               {i === 3 && post.media.length > 4 && (
                 <span className="post__media-more">+{post.media.length - 4}</span>
               )}

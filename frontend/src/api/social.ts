@@ -61,7 +61,8 @@ export interface StoryTray {
   items: StoryItem[];
 }
 
-export const getFeed = () => api<Post[]>("/social/feed");
+export const getFeed = (limit = 10, offset = 0) =>
+  api<Post[]>(`/social/feed?limit=${limit}&offset=${offset}`);
 
 export interface NewPost {
   body?: string;
@@ -113,6 +114,7 @@ export interface PublicProfile {
   username: string;
   display_name: string | null;
   avatar_url: string | null;
+  bio: string | null;
   age: number | null;
   sex: string | null;
   goals: string[];
@@ -129,8 +131,8 @@ export interface PublicProfile {
 export const getUserProfile = (userId: string) =>
   api<PublicProfile>(`/social/users/${userId}`);
 
-export const getUserPosts = (userId: string) =>
-  api<Post[]>(`/social/users/${userId}/posts`);
+export const getUserPosts = (userId: string, limit = 10, offset = 0) =>
+  api<Post[]>(`/social/users/${userId}/posts?limit=${limit}&offset=${offset}`);
 
 // ---- Stories ----
 
