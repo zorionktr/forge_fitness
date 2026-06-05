@@ -2,9 +2,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { ApiError } from "@/api/client";
 import { createPost, uploadPostMedia } from "@/api/social";
+import { useKeyboardInset } from "@/lib/useKeyboardInset";
 
 const MAX_TAGS = 10;
 const MAX_IMAGES = 10;
+
+type Mode = "post" | "pr";
 
 interface Pick {
   file: File;
@@ -15,10 +18,12 @@ function sanitizeTag(raw: string): string {
   return raw.trim().replace(/^#+/, "").toLowerCase().replace(/[^a-z0-9_-]/g, "").slice(0, 30);
 }
 
-/** Bottom-sheet composer: text + up to 10 #tags + up to 10 images (camera or gallery). */
+/** Bottom-sheet composer: a normal post, or a "New PR" announcement for an exercise.
+    Both support text + up to 10 #tags + up to 10 images (camera or gallery). */
 export function NewPostModal({ onClose }: { onClose: () => void }) {
   const queryClient = useQueryClient();
 
+  const [mode, setMode] = useState<Mode>("post");
   const [body, setBody] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [tagDraft, setTagDraft] = useState("");
@@ -26,8 +31,15 @@ export function NewPostModal({ onClose }: { onClose: () => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // PR-announcement fields.
+  const [exercise, setExercise] = useState("");
+  const [weight, setWeight] = useState("");
+  const [unit, setUnit] = useState<"kg" | "lb">("kg");
+  const [reps, setReps] = useState("");
+
   const cameraInput = useRef<HTMLInputElement>(null);
   const galleryInput = useRef<HTMLInputElement>(null);
+  const kbInset = useKeyboardInset();
 
   // Revoke any remaining preview object URLs once, on unmount (removePick handles the rest).
   const picksRef = useRef<Pick[]>([]);
@@ -41,10 +53,11 @@ export function NewPostModal({ onClose }: { onClose: () => void }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  const canPost = useMemo(
-    () => !busy && (body.trim().length > 0 || picks.length > 0),
-    [busy, body, picks],
-  );
+  const canPost = useMemo(() => {
+    if (busy) return false;
+    if (mode === "pr") return exercise.trim().length > 0 && weight.trim().length > 0;
+    return body.trim().length > 0 || picks.length > 0;
+  }, [busy, mode, body, picks, exercise, weight]);
 
   const addTag = (raw: string) => {
     const t = sanitizeTag(raw);
@@ -86,7 +99,21 @@ export function NewPostModal({ onClose }: { onClose: () => void }) {
     setError(null);
     try {
       const media = picks.length ? await uploadPostMedia(picks.map((p) => p.file)) : [];
-      await createPost({ body: body.trim() || undefined, tags, media });
+      if (mode === "pr") {
+        const ex = exercise.trim();
+        const repPart = reps.trim() ? ` × ${reps.trim()}` : "";
+        const note = body.trim() ? `\n${body.trim()}` : "";
+        const headline = `🏆 New PR — ${ex}: ${weight.trim()} ${unit}${repPart}${note}`;
+        const prTags = [sanitizeTag(ex), "pr", ...tags].filter(Boolean);
+        await createPost({
+          kind: "pr",
+          body: headline,
+          tags: Array.from(new Set(prTags)).slice(0, MAX_TAGS),
+          media,
+        });
+      } else {
+        await createPost({ body: body.trim() || undefined, tags, media });
+      }
       await queryClient.invalidateQueries({ queryKey: ["feed"] });
       onClose();
     } catch (err) {
@@ -96,28 +123,97 @@ export function NewPostModal({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="sheet__overlay" onClick={onClose}>
+    <div className="sheet__overlay" onClick={onClose} style={{ paddingBottom: kbInset || undefined }}>
       <div className="sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="New post">
         <div className="sheet__grip" aria-hidden="true" />
         <header className="sheet__head">
           <button className="sheet__cancel" type="button" onClick={onClose} disabled={busy}>
             Cancel
           </button>
-          <span className="sheet__title">New post</span>
+          <span className="sheet__title">{mode === "pr" ? "New PR" : "New post"}</span>
           <button className="sheet__post" type="button" onClick={submit} disabled={!canPost}>
-            {busy ? "Posting…" : "Post"}
+            {busy ? "Posting…" : mode === "pr" ? "Announce" : "Post"}
           </button>
         </header>
 
+        <div className="seg" role="tablist">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === "post"}
+            className={`seg__btn ${mode === "post" ? "seg__btn--on" : ""}`}
+            onClick={() => setMode("post")}
+          >
+            Post
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === "pr"}
+            className={`seg__btn ${mode === "pr" ? "seg__btn--on" : ""}`}
+            onClick={() => setMode("pr")}
+          >
+            🏆 New PR
+          </button>
+        </div>
+
         <div className="sheet__body">
+          {mode === "pr" && (
+            <div className="pr-form">
+              <label className="pr-form__field pr-form__field--ex">
+                <span>Exercise</span>
+                <input
+                  value={exercise}
+                  onChange={(e) => setExercise(e.target.value)}
+                  placeholder="e.g. Bench Press"
+                  maxLength={60}
+                  autoFocus
+                />
+              </label>
+              <label className="pr-form__field">
+                <span>Weight</span>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  value={weight}
+                  onChange={(e) => setWeight(e.target.value)}
+                  placeholder="100"
+                  min="0"
+                />
+              </label>
+              <label className="pr-form__field pr-form__field--unit">
+                <span>Unit</span>
+                <select value={unit} onChange={(e) => setUnit(e.target.value as "kg" | "lb")}>
+                  <option value="kg">kg</option>
+                  <option value="lb">lb</option>
+                </select>
+              </label>
+              <label className="pr-form__field">
+                <span>Reps</span>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  value={reps}
+                  onChange={(e) => setReps(e.target.value)}
+                  placeholder="5"
+                  min="0"
+                />
+              </label>
+            </div>
+          )}
+
           <textarea
             className="sheet__text"
             value={body}
             onChange={(e) => setBody(e.target.value)}
-            placeholder="Share a workout, a win, or ask the community…"
-            rows={4}
+            placeholder={
+              mode === "pr"
+                ? "Add a note — how did it feel? (optional)"
+                : "Share a workout, a win, or ask the community…"
+            }
+            rows={mode === "pr" ? 2 : 4}
             maxLength={5000}
-            autoFocus
+            autoFocus={mode === "post"}
           />
 
           {picks.length > 0 && (

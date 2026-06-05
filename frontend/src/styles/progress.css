@@ -32,6 +32,25 @@
 .prog__check:disabled { opacity: 0.6; cursor: default; }
 .prog__check:active { transform: scale(0.97); }
 
+/* Trained-muscle chips shown under the check-in row */
+.prog__muscles { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 0 0 14px; }
+.prog__muscle { background: rgba(255, 138, 106, 0.14); color: #ffb59c; border: 1px solid rgba(255, 138, 106, 0.3); border-radius: 999px; padding: 3px 10px; font-size: 12.5px; font-weight: 600; }
+.prog__muscleEmpty { color: var(--muted); font-size: 12.5px; }
+.prog__muscleEdit { margin-left: auto; background: transparent; border: 0; color: var(--accent); font-size: 12.5px; font-weight: 600; cursor: pointer; padding: 2px 4px; }
+
+/* Muscle picker grid (inside the check-in sheet) */
+.muscle__hint { margin: 0; color: var(--muted); font-size: 13px; }
+.muscle__grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.muscle__chip {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  background: #11161f; border: 1px solid #222b38; border-radius: 14px;
+  padding: 12px 6px; color: var(--text); font-size: 12.5px; font-weight: 600; cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, transform 0.1s;
+}
+.muscle__chip:active { transform: scale(0.96); }
+.muscle__chip--on { border-color: var(--accent); background: rgba(255, 90, 54, 0.14); color: #ffb59c; }
+.muscle__emoji { font-size: 20px; line-height: 1; }
+
 .prog__proteinHead { display: flex; align-items: baseline; justify-content: space-between; }
 .prog__proteinHead b { font-size: 14.5px; }
 .prog__proteinHead span { color: var(--muted); font-size: 13px; }

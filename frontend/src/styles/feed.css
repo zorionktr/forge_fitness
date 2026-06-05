@@ -17,6 +17,7 @@
   align-items: flex-end;
   justify-content: center;
   animation: sheetFade 0.2s ease;
+  transition: padding-bottom 0.18s ease;
 }
 .sheet {
   width: 100%;
@@ -43,6 +44,23 @@
   box-shadow: 0 6px 16px -6px rgba(255, 45, 117, 0.7);
 }
 .sheet__post:disabled { opacity: 0.45; cursor: default; box-shadow: none; }
+
+/* Post / PR mode switch */
+.seg { display: flex; gap: 4px; background: #11161f; border: 1px solid #222b38; border-radius: 12px; padding: 4px; margin-bottom: 4px; }
+.seg__btn { flex: 1; background: transparent; border: 0; color: var(--muted); font-size: 13.5px; font-weight: 600; padding: 8px 0; border-radius: 9px; cursor: pointer; transition: background 0.15s, color 0.15s; }
+.seg__btn--on { background: var(--panel); color: var(--text); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4); }
+
+/* PR announcement fields */
+.pr-form { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.pr-form__field { display: flex; flex-direction: column; gap: 4px; }
+.pr-form__field > span { color: var(--muted); font-size: 12px; font-weight: 600; }
+.pr-form__field--ex { grid-column: 1 / -1; }
+.pr-form__field--unit { max-width: 100%; }
+.pr-form__field input, .pr-form__field select {
+  background: #11161f; border: 1px solid #222b38; border-radius: 10px; color: var(--text);
+  font-size: 15px; font-family: inherit; padding: 10px 12px; outline: none; width: 100%;
+}
+.pr-form__field input:focus, .pr-form__field select:focus { border-color: var(--accent); }
 
 .sheet__body { overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding: 6px 0; }
 .sheet__text {

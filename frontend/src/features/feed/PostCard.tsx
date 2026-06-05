@@ -56,18 +56,24 @@ export function PostCard({ post }: { post: Post }) {
     }
   };
 
+  const isPr = post.kind === "pr";
+
   return (
-    <article className="post">
+    <article className={`post ${isPr ? "post--pr" : ""}`}>
       <header className="post__head">
         <div className="post__avatar">{initials(post)}</div>
         <div className="post__who">
           <span className="post__name">{post.author.display_name || post.author.username}</span>
           <span className="post__meta">@{post.author.username} · {timeAgo(post.created_at)}</span>
         </div>
-        {post.reason && <span className="post__reason">{post.reason}</span>}
+        {isPr ? (
+          <span className="post__prbadge">🏆 PR</span>
+        ) : (
+          post.reason && <span className="post__reason">{post.reason}</span>
+        )}
       </header>
 
-      {post.body && <p className="post__body">{post.body}</p>}
+      {post.body && <p className={`post__body ${isPr ? "post__body--pr" : ""}`}>{post.body}</p>}
 
       {post.media.length > 0 && (
         <div className={`post__media post__media--n${Math.min(post.media.length, 4)}`}>

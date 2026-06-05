@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { addStoryComment, likeStory, type StoryTray } from "@/api/social";
 import { timeAgo } from "@/lib/time";
 import { mediaUrl } from "@/lib/media";
@@ -54,6 +55,15 @@ export function StoryViewer({
     }
   };
 
+  // Lock background scroll while the full-screen viewer is open.
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
+
   // Sync liked state + mark seen whenever the visible item changes.
   useEffect(() => {
     if (!item) return;
@@ -107,7 +117,7 @@ export function StoryViewer({
   if (!tray || !item) return null;
   const media = item.media[0];
 
-  return (
+  return createPortal(
     <div className="sv">
       <div className="sv__progress">
         {tray.items.map((it, idx) => (
@@ -157,6 +167,7 @@ export function StoryViewer({
           {liked ? "♥" : "♡"}
         </button>
       </footer>
-    </div>
+    </div>,
+    document.body,
   );
 }

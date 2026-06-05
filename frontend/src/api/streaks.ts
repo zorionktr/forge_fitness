@@ -4,10 +4,17 @@ import type { Author } from "@/api/social";
 export interface StreaksToday {
   day: string;
   gym_checked_in: boolean;
+  muscles: string[];
   protein_target_g: number | null;
   protein_logged_g: number;
   protein_met: boolean;
 }
+
+/** Muscle groups offered at check-in (must match the backend MUSCLE_GROUPS set). */
+export const MUSCLE_GROUPS = [
+  "chest", "back", "shoulders", "biceps", "triceps", "forearms",
+  "core", "quads", "hamstrings", "glutes", "calves", "cardio",
+] as const;
 
 export interface MyStreaks {
   gym_streak: number;
@@ -18,6 +25,7 @@ export interface MyStreaks {
 export interface CheckinResult {
   gym_checked_in: boolean;
   gym_streak: number;
+  muscles: string[];
 }
 
 export interface LeaderboardEntry {
@@ -37,7 +45,11 @@ export interface Leaderboard {
 
 export const getMyStreaks = () => api<MyStreaks>("/streaks/me");
 
-export const gymCheckin = () => api<CheckinResult>("/streaks/checkin", { method: "POST" });
+export const gymCheckin = (muscles: string[] = []) =>
+  api<CheckinResult>("/streaks/checkin", {
+    method: "POST",
+    body: JSON.stringify({ muscles }),
+  });
 
 export const undoGymCheckin = () => api<CheckinResult>("/streaks/checkin", { method: "DELETE" });
 

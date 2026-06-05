@@ -68,6 +68,7 @@ export interface NewPost {
   body?: string;
   tags?: string[];
   media?: Media[];
+  kind?: string; // "text" (default) | "pr" | ...
 }
 
 export const createPost = (post: NewPost) =>

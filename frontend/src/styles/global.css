@@ -239,6 +239,11 @@ body { margin: 0; background: var(--bg); color: var(--text); }
 .post__name { font-weight: 600; font-size: 14px; }
 .post__meta { color: var(--muted); font-size: 12px; }
 .post__body { margin: 12px 0 10px; line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
+
+/* PR announcement post */
+.post--pr { border-color: rgba(255, 138, 106, 0.5); background: linear-gradient(180deg, rgba(255, 90, 54, 0.08), var(--panel) 60%); }
+.post__prbadge { margin-left: auto; align-self: flex-start; flex: none; font-size: 11px; font-weight: 700; color: #0b0e14; background: linear-gradient(135deg, #ffb347, #ff5a36); border-radius: 999px; padding: 3px 10px; white-space: nowrap; }
+.post__body--pr { font-size: 16px; font-weight: 600; }
 .post__actions { display: flex; gap: 18px; border-top: 1px solid #222b38; padding-top: 10px; }
 .post__action { background: transparent; border: 0; color: var(--muted); font-size: 14px; cursor: pointer; padding: 4px; display: flex; align-items: center; gap: 6px; }
 .post__action:hover { color: var(--text); }

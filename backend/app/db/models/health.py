@@ -10,6 +10,7 @@ import uuid
 from datetime import date, datetime
 
 from sqlalchemy import Date, DateTime, ForeignKey, Numeric, String, UniqueConstraint, func
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -43,3 +44,5 @@ class GymCheckin(Base):
     )
     day: Mapped[date] = mapped_column(Date, default=date.today, index=True)
     note: Mapped[str | None] = mapped_column(String, nullable=True)
+    # Muscle groups trained today, e.g. ["chest", "back"]. Logged at check-in time.
+    muscles: Mapped[list] = mapped_column(JSONB, default=list, server_default="[]")

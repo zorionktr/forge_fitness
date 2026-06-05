@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -8,6 +9,7 @@ import {
   type LeaderboardEntry,
 } from "@/api/streaks";
 import { Avatar } from "@/features/social/Avatar";
+import { MuscleCheckinSheet, muscleLabel } from "./MuscleCheckinSheet";
 
 /** Streaks + friends leaderboard. The "Progress" tab. */
 export function ProgressScreen() {
@@ -21,12 +23,21 @@ export function ProgressScreen() {
     qc.invalidateQueries({ queryKey: ["leaderboard"] });
   };
 
-  const checkin = useMutation({ mutationFn: gymCheckin, onSuccess: refresh });
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  const checkin = useMutation({
+    mutationFn: (muscles: string[]) => gymCheckin(muscles),
+    onSuccess: () => {
+      refresh();
+      setPickerOpen(false);
+    },
+  });
   const uncheck = useMutation({ mutationFn: undoGymCheckin, onSuccess: refresh });
 
   const s = streaksQ.data;
   const busy = checkin.isPending || uncheck.isPending;
   const checkedIn = s?.today.gym_checked_in ?? false;
+  const muscles = s?.today.muscles ?? [];
 
   const proteinPct =
     s && s.today.protein_target_g
@@ -51,11 +62,26 @@ export function ProgressScreen() {
           <button
             className={`prog__check ${checkedIn ? "prog__check--on" : ""}`}
             disabled={busy}
-            onClick={() => (checkedIn ? uncheck.mutate() : checkin.mutate())}
+            onClick={() => (checkedIn ? uncheck.mutate() : setPickerOpen(true))}
           >
             {checkedIn ? "✓ Trained" : "Check in"}
           </button>
         </div>
+
+        {checkedIn && (
+          <div className="prog__muscles">
+            {muscles.length > 0 ? (
+              muscles.map((m) => (
+                <span className="prog__muscle" key={m}>{muscleLabel(m)}</span>
+              ))
+            ) : (
+              <span className="prog__muscleEmpty">No muscles logged</span>
+            )}
+            <button className="prog__muscleEdit" onClick={() => setPickerOpen(true)}>
+              {muscles.length > 0 ? "Edit" : "+ Add"}
+            </button>
+          </div>
+        )}
 
         <div className="prog__todayRow prog__todayRow--col">
           <div className="prog__proteinHead">
@@ -98,6 +124,15 @@ export function ProgressScreen() {
           <BoardRow key={e.user.id} entry={e} rank={i + 1} />
         ))}
       </section>
+
+      {pickerOpen && (
+        <MuscleCheckinSheet
+          initial={muscles}
+          busy={checkin.isPending}
+          onConfirm={(picked) => checkin.mutate(picked)}
+          onClose={() => setPickerOpen(false)}
+        />
+      )}
     </div>
   );
 }

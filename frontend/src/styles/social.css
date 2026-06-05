@@ -63,7 +63,9 @@
 }
 
 /* ---------- Story viewer (full screen) ---------- */
-.sv { position: fixed; inset: 0; z-index: 80; background: #000; display: flex; flex-direction: column; max-width: 560px; margin: 0 auto; }
+/* height:100dvh (not inset:0/100vh) so the header + footer aren't hidden behind
+   mobile browser chrome / the home indicator — that's what cut stories top & bottom. */
+.sv { position: fixed; top: 0; left: 0; right: 0; height: 100dvh; z-index: 80; background: #000; display: flex; flex-direction: column; max-width: 560px; margin: 0 auto; overflow: hidden; }
 .sv__progress { display: flex; gap: 4px; padding: calc(8px + var(--safe-top, 0px)) 10px 6px; z-index: 3; }
 .sv__bar { flex: 1; height: 3px; border-radius: 2px; background: rgba(255, 255, 255, 0.3); overflow: hidden; }
 .sv__bar-fill { display: block; height: 100%; width: 0; background: #fff; }

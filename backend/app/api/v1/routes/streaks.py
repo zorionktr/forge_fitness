@@ -20,6 +20,7 @@ from app.db.models.social import Follow
 from app.db.models.user import Profile, User
 from app.schemas.social import Author
 from app.schemas.streaks import (
+    CheckinCreate,
     CheckinResult,
     Leaderboard,
     LeaderboardEntry,
@@ -37,6 +38,22 @@ from app.services.streaks import (
 router = APIRouter()
 
 LEADERBOARD_WINDOW = 30  # days the leaderboard counts span
+
+# Muscle groups offered at check-in; anything outside this set is ignored.
+MUSCLE_GROUPS = {
+    "chest", "back", "shoulders", "biceps", "triceps", "forearms",
+    "core", "quads", "hamstrings", "glutes", "calves", "cardio",
+}
+
+
+def _clean_muscles(raw: list[str]) -> list[str]:
+    """Normalize, validate against the known set, and de-duplicate (order-preserving)."""
+    seen: list[str] = []
+    for m in raw:
+        key = m.strip().lower()
+        if key in MUSCLE_GROUPS and key not in seen:
+            seen.append(key)
+    return seen
 
 
 def _author(u: User) -> Author:
@@ -62,18 +79,27 @@ async def _gym_streak(db: DbDep, user_id: uuid.UUID, today: date) -> int:
 
 
 @router.post("/checkin", response_model=CheckinResult)
-async def gym_checkin(user: CurrentUser, db: DbDep) -> CheckinResult:
-    """Record today's gym check-in (idempotent — checking in twice is a no-op)."""
+async def gym_checkin(
+    user: CurrentUser, db: DbDep, payload: CheckinCreate | None = None
+) -> CheckinResult:
+    """Record today's gym check-in (idempotent). Re-checking in updates the trained muscles."""
     today = date.today()
+    muscles = _clean_muscles(payload.muscles) if payload else []
     existing = (
         await db.execute(
             select(GymCheckin).where(GymCheckin.user_id == user.id, GymCheckin.day == today)
         )
     ).scalar_one_or_none()
     if existing is None:
-        db.add(GymCheckin(user_id=user.id, day=today))
-        await db.flush()
-    return CheckinResult(gym_checked_in=True, gym_streak=await _gym_streak(db, user.id, today))
+        db.add(GymCheckin(user_id=user.id, day=today, muscles=muscles))
+    elif muscles:
+        existing.muscles = muscles  # allow editing the muscle log on a repeat tap
+    await db.flush()
+    return CheckinResult(
+        gym_checked_in=True,
+        gym_streak=await _gym_streak(db, user.id, today),
+        muscles=existing.muscles if existing is not None else muscles,
+    )
 
 
 @router.delete("/checkin", response_model=CheckinResult)
@@ -101,6 +127,12 @@ async def my_streaks(user: CurrentUser, db: DbDep) -> MyStreaks:
     gd = (await gym_days(db, [user.id], since)).get(user.id, set())
     pd = (await protein_days(db, {user.id: target}, since)).get(user.id, set())
 
+    today_checkin = (
+        await db.execute(
+            select(GymCheckin).where(GymCheckin.user_id == user.id, GymCheckin.day == today)
+        )
+    ).scalar_one_or_none()
+
     logged_today = await _protein_logged_on(db, user.id, today)
     return MyStreaks(
         gym_streak=compute_streak(gd, today),
@@ -108,6 +140,7 @@ async def my_streaks(user: CurrentUser, db: DbDep) -> MyStreaks:
         today=StreaksToday(
             day=today,
             gym_checked_in=today in gd,
+            muscles=list(today_checkin.muscles) if today_checkin else [],
             protein_target_g=target,
             protein_logged_g=round(logged_today, 1),
             protein_met=today in pd,
