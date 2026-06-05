@@ -123,12 +123,15 @@ def _row_value(
     *,
     excludes: tuple[str, ...] = (),
     unit: str | None = None,
+    target_x: float | None = None,
 ) -> float | None:
     """First number to the right of a label keyword on a matching row.
 
     `includes`/`excludes` match against the whole row text; the number must follow the
     label word. For unit'd fields (sodium 'mg') a value carrying the unit is preferred so the
-    trailing "% Daily Value" column isn't picked up.
+    trailing "% Daily Value" column isn't picked up. When `target_x` is given (a multi-column
+    label, e.g. "Per 100g | Per 50g"), the number nearest that column is chosen — so we read
+    the per-serving column instead of just grabbing the first (per-100g) value.
     """
     for row in rows:
         low = row["text"].lower()
@@ -140,21 +143,20 @@ def _row_value(
         )
         if idx is None:
             continue
-        after = row["words"][idx + 1:]
-        if unit:
-            for w in after:
-                if unit in w["text"].lower():
-                    m = _NUM_RE.search(w["text"])
-                    if m:
-                        return _to_float(m.group(1))
-        for w in after:
-            m = _NUM_RE.search(w["text"])
+        nums = [(w, _to_float(m.group(1))) for w in row["words"][idx + 1:] if (m := _NUM_RE.search(w["text"]))]
+        if not nums:
+            # number may be glued onto the label word itself, e.g. "Calories230"
+            m = _NUM_RE.search(row["words"][idx]["text"])
             if m:
                 return _to_float(m.group(1))
-        # number may be glued onto the label word itself, e.g. "Calories230"
-        m = _NUM_RE.search(row["words"][idx]["text"])
-        if m:
-            return _to_float(m.group(1))
+            continue
+        if unit:  # prefer a value carrying the unit (e.g. "160mg") when present
+            unit_nums = [(w, v) for w, v in nums if unit in w["text"].lower()]
+            if unit_nums:
+                nums = unit_nums
+        if target_x is not None:
+            return min(nums, key=lambda nv: abs(nv[0]["cx"] - target_x))[1]
+        return nums[0][1]
     return None
 
 
@@ -183,15 +185,47 @@ def _value_for(
 
 
 # (include patterns, exclude terms, unit) per macro — shared by row + line parsers.
+# "calorie|energy" because many (esp. non-US) labels print "Energy (kcal)" not "Calories".
 _MACROS: dict[str, tuple[tuple[str, ...], tuple[str, ...], str | None]] = {
-    "calories": ((r"calorie",), ("from fat",), None),
+    "calories": ((r"calorie", r"energy"), ("from fat",), None),
     "fat_g": ((r"\bfat\b",), ("saturated", "trans", "calories from fat"), None),
     "carbs_g": ((r"carbohydrate", r"\bcarb"), (), None),
     "fiber_g": ((r"fiber", r"fibre"), (), None),
-    "sugar_g": ((r"sugar",), (), None),
+    "sugar_g": ((r"sugar",), ("added",), None),  # want TOTAL sugar, not the "added sugar" row
     "protein_g": ((r"protein",), (), None),
     "sodium_mg": ((r"sodium", r"\bsalt\b"), (), "mg"),
 }
+
+
+def _serving_grams(serving: str | None) -> float | None:
+    """Grams from a serving-size string, e.g. "2/3 cup (55 g)" → 55, "50g" → 50."""
+    if not serving:
+        return None
+    m = re.search(r"(\d+(?:\.\d+)?)\s*g\b", serving, re.I)
+    return float(m.group(1)) if m else None
+
+
+def _serving_column_x(rows: list[dict[str, Any]], grams: float | None) -> float | None:
+    """x-center of the "Per <serving>g" column on a multi-column label, else None.
+
+    Labels like this one have Per 100g | Per 50g | Per 50g+250ml Milk | %RDA. We want the
+    pure per-serving column (matching the serving grams), not per-100g or the with-milk one.
+    """
+    if not grams:
+        return None
+    gstr = str(int(grams)) if float(grams).is_integer() else str(grams)
+    want = re.compile(rf"\b{re.escape(gstr)}\s*g\b", re.I)
+    for row in rows:
+        low = row["text"].lower()
+        if "100" not in low or "per" not in low:  # only the header row has both
+            continue
+        cells = [
+            w for w in row["words"]
+            if want.search(w["text"]) and not re.search(r"100|250|ml|milk|cow|\+", w["text"], re.I)
+        ]
+        if cells:
+            return min(cells, key=lambda w: w["x0"])["cx"]  # leftmost pure per-serving cell
+    return None
 
 
 def parse_document(text: str, words: list[dict[str, Any]]) -> dict[str, Any]:
@@ -204,14 +238,7 @@ def parse_document(text: str, words: list[dict[str, Any]]) -> dict[str, Any]:
     lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
     full = " ".join(lines)
 
-    out: dict[str, Any] = {"name": None, "brand": None}
-    for field, (inc, exc, unit) in _MACROS.items():
-        val = _row_value(rows, inc, excludes=exc, unit=unit)
-        if val is None:
-            val = _value_for(lines, inc, excludes=exc, unit=unit)
-        out[field] = val
-
-    # Serving size: text after the label on its row/line.
+    # Serving size first — it tells us which column to read on multi-column labels.
     serving = None
     for src in (rows, [{"text": ln} for ln in lines]):
         for r in src:
@@ -221,7 +248,16 @@ def parse_document(text: str, words: list[dict[str, Any]]) -> dict[str, Any]:
                 break
         if serving:
             break
-    out["serving_size"] = serving
+    out: dict[str, Any] = {"name": None, "brand": None, "serving_size": serving}
+
+    target_x = _serving_column_x(rows, _serving_grams(serving))
+    if target_x is not None:
+        logger.info("Multi-column label: reading the per-serving column (x≈%.2f).", target_x)
+    for field, (inc, exc, unit) in _MACROS.items():
+        val = _row_value(rows, inc, excludes=exc, unit=unit, target_x=target_x)
+        if val is None:
+            val = _value_for(lines, inc, excludes=exc, unit=unit)
+        out[field] = val
 
     # Ingredients: everything after the "Ingredients" keyword (capped).
     ingredients = None

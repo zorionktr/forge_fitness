@@ -30,24 +30,30 @@ _STRING = ("name", "brand", "serving_size", "ingredients")
 
 _PROMPT = """You are a nutrition-label parser. Below is raw OCR text from a photo of a food \
 package (nutrition facts panel and/or ingredients list). The text may be noisy, out of order, \
-or contain a "% Daily Value" column — ignore the % column.
+or contain extra columns.
 
 Extract the data and return ONLY a JSON object (no markdown, no prose) with exactly these keys:
 {
   "name": string|null,            // product name if present, else null
   "brand": string|null,
-  "serving_size": string|null,    // e.g. "2/3 cup (55 g)" or "30 g"
-  "calories": number|null,        // PER SERVING (kcal)
+  "serving_size": string|null,    // e.g. "2/3 cup (55 g)" or "50 g"
+  "calories": number|null,        // energy PER SERVING (kcal)
   "protein_g": number|null,
   "carbs_g": number|null,         // total carbohydrate
   "fat_g": number|null,           // total fat
   "fiber_g": number|null,
-  "sugar_g": number|null,         // total sugars (not "added sugars")
+  "sugar_g": number|null,         // total sugars (NOT "added sugars")
   "sodium_mg": number|null,
   "ingredients": string|null      // comma-separated, as printed
 }
-Use per-serving values. Numbers only (no units) for numeric fields. If a field is not present \
-or not legible, use null.
+
+Rules:
+- "Energy (kcal)" IS calories.
+- IMPORTANT: many labels have multiple value columns (e.g. "Per 100g", "Per <serving>g", \
+"Per <serving>g + milk", "%RDA"). Always use the column that matches the stated SERVING SIZE — \
+NOT the "Per 100g" column and NOT any "+ milk" column. Ignore the "% Daily Value"/"%RDA" column.
+- Numbers only (no units) for numeric fields. Use null for anything missing or illegible.
+- For ingredients, fix obvious OCR typos (e.g. "DrvP Fruits" → "Dry Fruits").
 
 OCR TEXT:
 \"\"\"
