@@ -14,6 +14,24 @@ import { FoodReview } from "./FoodReview";
 
 const MEALS = ["breakfast", "lunch", "dinner", "snack"];
 
+function CameraIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h1.2a1.5 1.5 0 0 0 1.27-.7l.66-1.05A1.5 1.5 0 0 1 9.9 3.5h4.2a1.5 1.5 0 0 1 1.27.7l.66 1.05A1.5 1.5 0 0 0 17.3 6h1.2A2.5 2.5 0 0 1 21 8.5v9A2.5 2.5 0 0 1 18.5 20h-13A2.5 2.5 0 0 1 3 17.5z" />
+      <circle cx="12" cy="13" r="3.5" />
+    </svg>
+  );
+}
+
+function PencilIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z" />
+    </svg>
+  );
+}
+
 const BLANK_FOOD: FoodDraft = {
   name: null, brand: null, serving_size: null, calories: null, protein_g: null,
   carbs_g: null, fat_g: null, fiber_g: null, sugar_g: null, sodium_mg: null,
@@ -112,11 +130,15 @@ export function NutritionScreen() {
     <div className="nutrition">
       <input ref={fileRef} type="file" accept="image/*" capture="environment" hidden onChange={onFile} />
       <div className="scan__row">
-        <button className="scan" onClick={() => fileRef.current?.click()} disabled={analyzing}>
-          {analyzing ? "Reading label…" : "📷 Scan a nutrition label"}
+        <button className="scan scan--primary" onClick={() => fileRef.current?.click()} disabled={analyzing}>
+          <span className={`scan__ico ${analyzing ? "scan__ico--busy" : ""}`}><CameraIcon /></span>
+          <span className="scan__label">{analyzing ? "Reading label…" : "Scan label"}</span>
+          <span className="scan__hint">{analyzing ? "Hold tight" : "Snap the panel"}</span>
         </button>
         <button className="scan scan--ghost" onClick={() => setDraft(BLANK_FOOD)} disabled={analyzing}>
-          ✏️ Add manually
+          <span className="scan__ico"><PencilIcon /></span>
+          <span className="scan__label">Add manually</span>
+          <span className="scan__hint">Enter the macros</span>
         </button>
       </div>
       {error && <p className="nutrition__error">{error}</p>}
@@ -128,11 +150,11 @@ export function NutritionScreen() {
           <button onClick={() => setSelectedDay((d) => shiftDay(d, 1))} disabled={isToday} title="Next day">›</button>
         </div>
         {t && (
-          <div className="totals__grid">
-            <span><b>{t.calories}</b> kcal</span>
-            <span><b>{t.protein_g}</b>g protein</span>
-            <span><b>{t.carbs_g}</b>g carbs</span>
-            <span><b>{t.fat_g}</b>g fat</span>
+          <div className="macros">
+            <div className="macro macro--kcal"><b>{t.calories}</b><span>kcal</span></div>
+            <div className="macro macro--p"><b>{t.protein_g}</b><span>protein</span></div>
+            <div className="macro macro--c"><b>{t.carbs_g}</b><span>carbs</span></div>
+            <div className="macro macro--f"><b>{t.fat_g}</b><span>fat</span></div>
           </div>
         )}
         {day && day.entries.length > 0 ? (
