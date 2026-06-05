@@ -48,4 +48,5 @@ RUN useradd -m -u 10001 forge && mkdir -p /home/forge/.cache/doctr && chown -R f
 USER forge
 EXPOSE 8001
 # API entrypoint; worker/beat override `command` in docker-compose / K8s.
-CMD ["gunicorn", "app.main:app", "-k", "uvicorn.workers.UvicornWorker", "-b", "0.0.0.0:8001", "-w", "4", "--timeout", "120"]
+# --timeout 360 (> FORGE_OCR_LLM_TIMEOUT_S=300) so a slow local-LLM label scan isn't killed mid-request.
+CMD ["gunicorn", "app.main:app", "-k", "uvicorn.workers.UvicornWorker", "-b", "0.0.0.0:8001", "-w", "4", "--timeout", "360"]
