@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ApiError } from "@/api/client";
 import { checkUsername, login, register } from "@/api/auth";
 import { useAuth } from "@/lib/auth";
@@ -202,6 +202,12 @@ export function SignInScreen() {
                 {showPassword ? "Hide" : "Show"}
               </button>
             </label>
+
+            {!isRegister && (
+              <p className="auth-card__forgot">
+                <Link to="/forgot-password">Forgot password?</Link>
+              </p>
+            )}
           </div>
 
           {error && <p className="auth-card__error">{error}</p>}

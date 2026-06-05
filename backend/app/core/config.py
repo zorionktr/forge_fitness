@@ -25,6 +25,18 @@ class Settings(BaseSettings):
     google_client_id: str | None = None
     apple_client_id: str | None = None
 
+    # --- Email (SMTP) for transactional mail like password-reset OTPs ---
+    smtp_host: str | None = None         # e.g. smtp.gmail.com; when unset, mail is logged not sent
+    smtp_port: int = 587
+    smtp_user: str | None = None
+    smtp_password: str | None = None
+    smtp_use_tls: bool = True            # STARTTLS (port 587); set False if using SSL or none
+    smtp_use_ssl: bool = False           # implicit SSL (port 465)
+    smtp_from: str = "no-reply@forge.app"
+    smtp_from_name: str = "Forge"
+    password_reset_otp_ttl_min: int = 10  # OTP validity window
+    password_reset_max_attempts: int = 5  # wrong-code guesses before an OTP is burned
+
     # --- LLM (provider abstraction, docs/03) ---
     llm_provider: Literal["anthropic", "openai", "gemini", "grok", "local"] = "anthropic"
     anthropic_api_key: str | None = None

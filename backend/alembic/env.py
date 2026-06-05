@@ -10,7 +10,7 @@ from alembic import context
 from app.core.config import settings
 from app.db.base import Base
 # Import models so they register on Base.metadata:
-from app.db.models import agent, health, nutrition, social, user  # noqa: F401
+from app.db.models import agent, auth, health, nutrition, social, user  # noqa: F401
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.database_url)

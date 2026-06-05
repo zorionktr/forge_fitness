@@ -22,7 +22,7 @@ _LOCK_KEY = 991_021  # arbitrary, stable app-wide key for pg_advisory_xact_lock
 
 async def init_db() -> None:
     # Import models so every table is registered on Base.metadata before create_all.
-    from app.db.models import agent, health, nutrition, social, user  # noqa: F401
+    from app.db.models import agent, auth, health, nutrition, social, user  # noqa: F401
 
     async with engine.begin() as conn:
         # Serialize across workers/replicas; released automatically at transaction end.

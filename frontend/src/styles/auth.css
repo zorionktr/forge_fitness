@@ -195,6 +195,39 @@
   font-size: 11.5px;
   line-height: 1.5;
 }
+.auth-card__legal a {
+  color: var(--accent, #8ab4ff);
+  text-decoration: none;
+}
+.auth-card__legal a:hover {
+  text-decoration: underline;
+}
+
+.auth-card__forgot {
+  margin: -4px 2px 0;
+  text-align: right;
+  font-size: 12.5px;
+}
+.auth-card__forgot a {
+  color: var(--accent, #8ab4ff);
+  text-decoration: none;
+}
+.auth-card__forgot a:hover {
+  text-decoration: underline;
+}
+
+/* Inline text button that looks like a link (e.g. "Use a different email"). */
+.linklike {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--accent, #8ab4ff);
+  cursor: pointer;
+}
+.linklike:hover {
+  text-decoration: underline;
+}
 
 .uname-status {
   margin: -4px 2px 0;

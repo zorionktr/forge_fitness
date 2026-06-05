@@ -13,6 +13,10 @@ export interface UsernameAvailability {
   reason: string | null;
 }
 
+export interface MessageResponse {
+  message: string;
+}
+
 /** Live availability check for the sign-up form (underscores allowed). */
 export function checkUsername(username: string): Promise<UsernameAvailability> {
   return api<UsernameAvailability>(`/auth/username-available?username=${encodeURIComponent(username)}`);
@@ -22,6 +26,26 @@ export function login(email: string, password: string): Promise<TokenResponse> {
   return api<TokenResponse>("/auth/login", {
     method: "POST",
     body: JSON.stringify({ email, password }),
+  });
+}
+
+/** Request a password-reset OTP. Always resolves (server never reveals if the email exists). */
+export function forgotPassword(email: string): Promise<MessageResponse> {
+  return api<MessageResponse>("/auth/forgot-password", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
+
+/** Verify the emailed OTP and set a new password; returns a fresh token pair on success. */
+export function resetPassword(
+  email: string,
+  otp: string,
+  newPassword: string,
+): Promise<TokenResponse> {
+  return api<TokenResponse>("/auth/reset-password", {
+    method: "POST",
+    body: JSON.stringify({ email, otp, new_password: newPassword }),
   });
 }
 

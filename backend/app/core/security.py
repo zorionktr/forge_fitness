@@ -1,6 +1,7 @@
 """Auth primitives: password hashing + JWT. See docs/11."""
 from __future__ import annotations
 
+import secrets
 import uuid
 from datetime import datetime, timedelta, timezone
 
@@ -23,6 +24,11 @@ def verify_password(raw: str, hashed: str) -> bool:
         return _ph.verify(hashed, raw)
     except VerifyMismatchError:
         return False
+
+
+def generate_otp(digits: int = 6) -> str:
+    """A cryptographically-random numeric one-time code (zero-padded)."""
+    return f"{secrets.randbelow(10 ** digits):0{digits}d}"
 
 
 def _encode(sub: str, ttl: timedelta, token_type: str, role: str) -> tuple[str, str]:

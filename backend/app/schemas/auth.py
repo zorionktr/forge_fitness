@@ -29,3 +29,19 @@ class UsernameAvailability(BaseModel):
     username: str
     available: bool
     reason: str | None = None  # why it's unavailable (taken / invalid), for the UI
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+    otp: str = Field(min_length=4, max_length=10, pattern=r"^\d+$")
+    new_password: str = Field(min_length=8, max_length=128)
+
+
+class MessageResponse(BaseModel):
+    """Generic ack for endpoints that intentionally reveal nothing else."""
+
+    message: str
