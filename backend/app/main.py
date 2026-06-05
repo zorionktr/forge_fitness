@@ -18,8 +18,19 @@ async def lifespan(app: FastAPI):
         from app.db.init import init_db
 
         await init_db()
+    # Warm the local OCR LLM in the background so the first label scan isn't a cold start.
+    # Best-effort and non-blocking — boot proceeds even if Ollama is down.
+    warm_task = None
+    if settings.ocr_use_llm:
+        import asyncio
+
+        from app.ml.food.llm_extract import warm_up
+
+        warm_task = asyncio.create_task(warm_up())
     yield
     # shutdown: close pools/producers
+    if warm_task and not warm_task.done():
+        warm_task.cancel()
 
 
 def create_app() -> FastAPI:

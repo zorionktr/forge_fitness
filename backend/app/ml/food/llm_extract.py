@@ -96,10 +96,14 @@ async def extract_fields_with_llm(ocr_text: str) -> dict[str, Any] | None:
         "prompt": _PROMPT.replace("{ocr_text}", ocr_text[:4000]),
         "stream": False,
         "format": "json",  # force valid JSON output
+        "keep_alive": "30m",  # keep the model resident so later scans skip the cold load
         "options": {"temperature": 0, "num_predict": 512},
     }
+    # Fail fast on a genuinely unreachable Ollama, but allow a long read window: the first
+    # request also loads ~5 GB of weights, and CPU generation is slow.
+    timeout = httpx.Timeout(settings.ocr_llm_timeout_s, connect=10.0)
     try:
-        async with httpx.AsyncClient(timeout=settings.ocr_llm_timeout_s) as client:
+        async with httpx.AsyncClient(timeout=timeout) as client:
             resp = await client.post(url, json=payload)
             resp.raise_for_status()
             content = resp.json().get("response", "")
@@ -108,5 +112,42 @@ async def extract_fields_with_llm(ocr_text: str) -> dict[str, Any] | None:
             raise ValueError("LLM did not return a JSON object")
         return _coerce(parsed)
     except Exception as exc:
-        logger.warning("Local LLM (%s) OCR parse failed: %s", settings.ocr_model, exc)
+        # str(exc) is empty for httpx timeouts — log the type so failures are diagnosable.
+        logger.warning(
+            "Local LLM (%s @ %s) OCR parse failed: %s",
+            settings.ocr_model, settings.local_llm_base_url, repr(exc) or type(exc).__name__,
+        )
         return None
+
+
+async def warm_up() -> None:
+    """Best-effort: load the model into Ollama at startup so the first scan isn't a cold start.
+
+    Verifies the model is pulled and triggers a load (keep_alive keeps it resident). Logs a
+    clear OK / warning so a misconfig (Ollama down, model not pulled) is visible in boot logs.
+    """
+    if not settings.ocr_use_llm:
+        return
+    base = settings.local_llm_base_url.rstrip("/")
+    try:
+        async with httpx.AsyncClient(timeout=httpx.Timeout(300.0, connect=5.0)) as client:
+            tags = (await client.get(f"{base}/api/tags")).json().get("models", [])
+            names = {m.get("name", "") for m in tags}
+            if not any(n == settings.ocr_model or n.startswith(settings.ocr_model) for n in names):
+                logger.warning(
+                    "Ollama reachable at %s but model %r is not pulled (have: %s). "
+                    "Run: ollama pull %s",
+                    base, settings.ocr_model, sorted(names) or "none", settings.ocr_model,
+                )
+                return
+            # Empty prompt just loads the model; keep_alive holds it in memory.
+            await client.post(
+                f"{base}/api/generate",
+                json={"model": settings.ocr_model, "prompt": "", "stream": False, "keep_alive": "30m"},
+            )
+        logger.info("Ollama OK: model %s loaded and warm at %s.", settings.ocr_model, base)
+    except Exception as exc:
+        logger.warning(
+            "Ollama warm-up failed (%s @ %s): %s — scans will fall back to the heuristic parser.",
+            settings.ocr_model, base, repr(exc) or type(exc).__name__,
+        )

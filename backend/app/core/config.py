@@ -50,7 +50,7 @@ class Settings(BaseSettings):
     ocr_use_llm: bool = True  # parse OCR text with a local LLM; heuristic parser is the fallback
     local_llm_base_url: str = "http://localhost:11434"  # Ollama endpoint (reachable via host networking)
     ocr_model: str = "qwen2.5:7b"  # local model that turns OCR text into structured macros
-    ocr_llm_timeout_s: float = 90.0  # generation can be slow on CPU; keep the timeout generous
+    ocr_llm_timeout_s: float = 120.0  # CPU generation is slow; startup warm-up avoids cold-start hits
 
     # --- Storage / events ---
     s3_bucket: str = "forge-media-local"
